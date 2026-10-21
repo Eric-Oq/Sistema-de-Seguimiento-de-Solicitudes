@@ -10,6 +10,6 @@ namespace SolicitudesShared.RecursosRevision
     {
         public string Concepto { get; set; } = "";
         public int Cantidad { get; set; }
-        public string Recursos { get; set; } = ""; // Ej. "(RR-01) (RR-02)"
+        public string Recursos { get; set; } = "";
     }
 }

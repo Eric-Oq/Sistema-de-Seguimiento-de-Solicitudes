@@ -1,311 +1,1152 @@
 ﻿@page "/menu/recursos-revision/registro/expediente"
+@page "/menu/recursos-revision/registro"
 
-@using System.Net.Http.Json
 @using SolicitudesShared.RecursosRevision
-@inject NavigationManager Navigation
+@using System.Net.Http.Json
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Forms
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<h3 class="module-header">Expediente Digital del Recurso de Revisión</h3>
-<p class="module-subtitle">Capture la información correspondiente:</p>
+<PageTitle>Expediente Digital - Recursos de Revisión</PageTitle>
 
-<div class="table-responsive mt-4">
-    <table class="table table-bordered table-striped">
-        <thead class="table-primary">
-            <tr>
-                <th>Número de Recurso</th>
-                <th>Estatus</th>
-                <th>Resolución en Sentido</th>
-                <th>Contenido Solicitud</th>
-                <th>Nombre Recurrente</th>
-                <th>Sentido Contestación</th>
-                <th>Fecha Notificación Admisión</th>
-                <th>Respuesta Solicitud</th>
-                <th>Fecha Acuerdo</th>
-                <th>Contenido Acuerdo</th>
-                <th>Materia</th>
-                <th>Razón</th>
-                <th>Fecha Notificación</th>
-                <th>Folio</th>
-                <th>Fecha Contestación</th>
-                <th>Fecha Acuerdo Final</th>
-                <th>Contenido Acuerdo Final</th>
-            </tr>
-        </thead>
+<!-- BLOQUEO DE NAVEGACIÓN (Punto 2) -->
+<NavigationLock ConfirmExternalNavigation="@HayCambios"
+                OnBeforeInternalNavigation="ConfirmarNavegacionInterna" />
 
-        <tbody>
-            <tr>
-                <td><input class="form-control" @bind="Modelo.NumeroRecurso" /></td>
+<div class="p-6 max-w-7xl mx-auto space-y-6">
 
-                <td>
-                    <select class="form-select" @bind="Modelo.Estatus">
-                        <option value="">--Seleccione--</option>
-                        <option>En trámite</option>
-                        <option>Concluido</option>
-                    </select>
-                </td>
-
-                <td>
-                    <select class="form-select" @bind="Modelo.ResolucionSentido">
-                        <option value="">--Seleccione--</option>
-                        <option>Confirma</option>
-                        <option>Sobresee</option>
-                        <option>Modifica</option>
-                        <option>Revoca</option>
-                        <option>Dar Respuesta</option>
-                    </select>
-                </td>
-
-                <td><input class="form-control" @bind="Modelo.ContenidoSolicitud" /></td>
-                <td><input class="form-control" @bind="Modelo.NombreRecurrente" /></td>
-                <td><input class="form-control" @bind="Modelo.SentidoContestacion" /></td>
-
-                <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacionAdmision" /></td>
-                <td><input class="form-control" @bind="Modelo.RespuestaSolicitud" /></td>
-                <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdo" /></td>
-                <td><input class="form-control" @bind="Modelo.ContenidoAcuerdo" /></td>
-
-                <td>
-                    <select class="form-select" @bind="Modelo.MateriaRecurso">
-                        <option value="">--Seleccione--</option>
-                        <option>DAI</option>
-                        <option>DP</option>
-                    </select>
-                </td>
-
-                <td><input class="form-control" @bind="Modelo.RazonInterposicion" /></td>
-                <td><input type="date" class="form-control" @bind="Modelo.FechaNotificacion" /></td>
-                <td><input class="form-control" @bind="Modelo.FolioSolicitud" /></td>
-                <td><input type="date" class="form-control" @bind="Modelo.FechaContestacionRecurso" /></td>
-                <td><input type="date" class="form-control" @bind="Modelo.FechaAcuerdoFinal" /></td>
-                <td><input class="form-control" @bind="Modelo.ContenidoAcuerdoFinal" /></td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
-<button class="btn btn-primary mt-3 me-2" @onclick="Guardar">Guardar</button>
-
-<button class="btn btn-danger mt-3" @onclick="GenerarPDF">
-    <i class="bi bi-filetype-pdf"></i> Descargar PDF
-</button>
-
-<button class="btn btn-info ms-2" @onclick="() => MostrarPanelPDF = true">
-    Agregar PDF
-</button>
-
-<button class="btn btn-secondary ms-2" @onclick="MostrarDocumentosGuardados">
-    Documentos Guardados
-</button>
-
-<!-- PANEL PARA AGREGAR PDF -->
-@if (MostrarPanelPDF)
-{
-    <div class="card p-3 mt-3 border-info">
-        <h5>Agregar PDF al expediente</h5>
-
-        <InputFile OnChange="OnFileSelected" accept="application/pdf" />
-
-        @if (!string.IsNullOrEmpty(NombreArchivo))
-        {
-            <p class="mt-2 text-muted">Archivo seleccionado: <b>@NombreArchivo</b></p>
-        }
-
-        <button class="btn btn-success mt-2" @onclick="GuardarPDF">Guardar</button>
-        <button class="btn btn-secondary mt-2 ms-2" @onclick="() => MostrarPanelPDF = false">Cancelar</button>
+    <!-- ENCABEZADO Y ACCIONES PRINCIPALES -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Expediente Digital de Recursos de Revisión</h1>
+            <p class="text-sm text-slate-500">Materia: DAI / Datos Personales — Captura, gestión y consulta</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold rounded-lg border border-slate-300 shadow-sm transition"
+                    @onclick="LimpiarOCancelar">
+                @(modelo.IdExpediente == 0 ? "Limpiar Captura" : "Cancelar Edición")
+            </button>
+            <button class="px-4 py-2 text-sm font-semibold rounded-lg shadow transition
+                    @(modelo.IdExpediente > 0 && !HayCambios ? "bg-slate-200 text-slate-500 hover:bg-slate-300 cursor-default" : "bg-indigo-600 text-white hover:bg-indigo-700")"
+                    @onclick="GuardarOActualizar">
+                @(modelo.IdExpediente == 0 ? "Guardar Expediente" : (HayCambios ? "Actualizar Cambios" : "Sin cambios realizados"))
+            </button>
+        </div>
     </div>
-}
 
-<!-- PANEL DOCUMENTOS GUARDADOS -->
-@if (MostrarListaDocumentos)
-{
-    <div class="card p-3 mt-3 border-secondary">
-        <h5>Documentos Guardados</h5>
-
-        @if (ListaPDFs.Count == 0)
-        {
-            <p class="text-muted">No hay documentos guardados.</p>
+    <!-- ALERTA GENERAL DEL EXPEDIENTE -->
+    @if (!string.IsNullOrEmpty(mensajeAlerta))
+    {
+        <div class="p-4 rounded-lg text-sm font-medium flex items-center justify-between transition-all duration-300
+                        @(tipoAlerta == "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
+                                                     tipoAlerta == "info" ? "bg-blue-50 text-blue-800 border border-blue-200" :
+                                                     "bg-rose-50 text-rose-800 border border-rose-200")">
+        <span>@mensajeAlerta</span>
+        <button type="button" class="font-bold text-base leading-none text-slate-400 hover:text-slate-700 ml-3 transition cursor-pointer" @onclick="CerrarAlerta">
+            ✕
+        </button>
+    </div>
         }
-        else
-        {
-            <table class="table table-bordered mt-2">
-                <thead class="table-secondary">
+
+    <!-- FORMULARIO MAESTRO (4 BLOQUES) -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-slate-50 px-6 py-3 border-b border-slate-200 flex items-center justify-between">
+            <span class="text-sm font-semibold text-slate-700">
+                @(modelo.IdExpediente == 0 ? "Captura de Nuevo Registro" : $"Modificando Expediente ID: #{modelo.IdExpediente} ({modelo.NumeroRecurso})")
+            </span>
+            @if (modelo.IdExpediente > 0)
+            {
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                    Modo Edición
+                </span>
+            }
+        </div>
+
+        <div class="p-6 space-y-8">
+
+            <!-- BLOQUE A: DATOS GENERALES -->
+            <div>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque A: Datos Generales</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Número de Recurso *</label>
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               placeholder="Ej. RR/0001/2026" @bind="modelo.NumeroRecurso" @bind:event="oninput"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Folio Solicitud *</label>
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               placeholder="Ej. 123456" @bind="modelo.FolioSolicitud" @bind:event="oninput" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Materia</label>
+                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                @bind="modelo.MateriaRecurso" @bind:event="oninput">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="DAI">Acceso a la Información (DAI)</option>
+                            <option value="DP">Datos Personales (DP)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Estatus Actual *</label>
+                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                @bind="modelo.Estatus" @bind:event="oninput">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="Admitido">Admitido</option>
+                            <option value="En trámite">En trámite</option>
+                            <option value="Concluido">Concluido</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre de la Persona Recurrente</label>
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               placeholder="Nombre completo" @bind="modelo.NombreRecurrente" @bind:event="oninput" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha de Presentación del Recurso</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaPresentacion" @bind:event="oninput" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Responsable Interno</label>
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               placeholder="Usuario asignado" @bind="modelo.ResponsableInterno" @bind:event="oninput" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- BLOQUE B: SOLICITUD ORIGINAL -->
+            <div class="border-t border-slate-100 pt-5">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque B: Solicitud Original</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Contenido de la Solicitud</label>
+                        <textarea rows="3" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                                  placeholder="Texto de la solicitud original..." @bind="modelo.ContenidoSolicitud" @bind:event="oninput"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Respuesta Otorgada</label>
+                        <textarea rows="3" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                                  placeholder="Respuesta original de la unidad administrativa..." @bind="modelo.RespuestaOtorgada" @bind:event="oninput"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Razón de Interposición</label>
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               placeholder="Ej. Negativa de información / Incompetencia" @bind="modelo.RazonInterposicion" @bind:event="oninput" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Respuesta a Solicitud</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaRespuestaSolicitud" @bind:event="oninput" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- BLOQUE C: TRÁMITE DEL RECURSO -->
+            <div class="border-t border-slate-100 pt-5">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque C: Trámite del Recurso</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Admisión</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaAdmision" @bind:event="oninput"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Notif. Admisión</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaNotificacionAdmision" @bind:event="oninput" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Límite Contestación</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaLimiteContestacion" @bind:event="oninput" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Contestación</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaContestacionRecurso" @bind:event="oninput" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Sentido Contestación</label>
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               placeholder="Detalles sobre el sentido emitido..." @bind="modelo.SentidoContestacion" @bind:event="oninput" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Cierre Instrucción</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaCierreInstruccion" @bind:event="oninput" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Resolución</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaResolucion" @bind:event="oninput" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Notif. Resolución</label>
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                               @bind="modelo.FechaNotificacionResolucion" @bind:event="oninput" />
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Sentido Resolución</label>
+                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                @bind="modelo.SentidoResolucion" @bind:event="oninput">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="Confirma">Confirma</option>
+                            <option value="Revoca">Revoca</option>
+                            <option value="Modifica">Modifica</option>
+                            <option value="Sobresee">Sobresee</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BLOQUE D: CUMPLIMIENTO -->
+            <div class="border-t border-slate-100 pt-5">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque D: Cumplimiento</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="flex items-center gap-2 pb-3">
+                        <input type="checkbox" id="chkCumplimiento" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                               @bind="modelo.RequiereCumplimiento" @bind:event="oninput" />
+                        <label for="chkCumplimiento" class="text-xs font-semibold text-slate-700">¿Requiere Cumplimiento?</label>
+                    </div>
+
+                    <!-- Solo mostramos los campos de cumplimiento si requiere cumplimiento -->
+                    @if (modelo.RequiereCumplimiento)
+                    {
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Límite Cumpl.</label>
+                            <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                                   @bind="modelo.FechaLimiteCumplimiento" @bind:event="oninput" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha que Cumplió</label>
+                            <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                                   @bind="modelo.FechaCumplio" @bind:event="oninput" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">¿Cumplió Resolución?</label>
+                            <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                    @bind="modelo.CumplioResolucion" @bind:event="oninput">
+                                <option value="">-- --</option>
+                                <option value="Sí">Sí</option>
+                                <option value="No">No</option>
+                                <option value="Parcial">Parcial</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Acuerdo de Cumplimiento / Incumplimiento</label>
+                            <textarea rows="2" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                                      placeholder="Detalles del acuerdo..." @bind="modelo.AcuerdoCumplimiento" @bind:event="oninput"></textarea>
+                        </div>
+                    }
+
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Observaciones</label>
+                        <textarea rows="2" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                                  placeholder="Anotaciones adicionales del expediente..." @bind="modelo.Observaciones" @bind:event="oninput"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GESTOR DOCUMENTAL -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+
+                <!-- ENCABEZADO -->
+                <div class="border-b border-slate-200 pb-3 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800">Carga y Gestión de Documentos</h2>
+                        <p class="text-xs text-slate-500">Expediente digital y constancias asociadas</p>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold px-2.5 py-1 rounded border @(modelo.IdExpediente == 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-indigo-50 text-indigo-700 border-indigo-200")">
+                            RECURSO: @(string.IsNullOrWhiteSpace(modelo.NumeroRecurso) ? "Sin guardar" : modelo.NumeroRecurso)
+                        </span>
+                    </div>
+                </div>
+
+                @if (modelo.IdExpediente == 0)
+                {
+                    <!-- MENSAJE DE APARTADO BLOQUEADO -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800">
+                        <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-xl shrink-0">
+                            🔒
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900">Apartado Bloqueado</h4>
+                            <p class="text-xs text-amber-700 mt-0.5">
+                                Para habilitar la carga de documentos, primero debes guardar los datos principales del expediente en la parte superior.
+                            </p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- FORMULARIO DE CARGA DE DOCUMENTO -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <!-- TIPO DE DOCUMENTO -->
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de documento: <span class="text-rose-500">*</span> </label>                            
+                                <select class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                        @bind="nuevoDocTipo">
+                                    <option value="Recurso de revisión">Recurso de revisión</option>
+                                    <option value="Acuerdo de admisión">Acuerdo de admisión</option>
+                                    <option value="Contestación">Contestación</option>
+                                    <option value="Resolución">Resolución</option>
+                                    <option value="Acuerdo de cumplimiento">Acuerdo de cumplimiento</option>
+                                    <option value="Otro">Otro documento</option>
+                                </select>
+                            </div>
+                            <div>
+                                <!-- FECHA DEL DOCUMENTO -->
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha del documento: <span class="text-rose-500">*</span></label>                            
+                                <input type="date" class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                       @bind="nuevoDocFecha" />
+                            </div>
+                            <!-- CAMPO USUARIO -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Usuario responsable: <span class="text-rose-500">*</span></label>
+                                <input type="text" class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                       placeholder="Ej. Juan Pérez"
+                                       @bind="nuevoDocUsuario" />
+                            </div>
+                            <!-- ARCHIVO PDF -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Archivo PDF: <span class="text-rose-500">*</span></label>
+                                <InputFile @key="inputFileKey" OnChange="OnArchivoSeleccionado" accept="application/pdf"
+                                           class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg bg-white" />
+                            </div>
+                            <!-- DESCRIPCIÓN -->
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción:</label>
+                                <input type="text" class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                       placeholder="Ej. Acuerdo por el que se admite el recurso..."
+                                       @bind="nuevoDocDescripcion" />
+                            </div>
+                        </div>
+
+                        <!-- BOTÓN GUARDAR DOCUMENTO Y ALERTA -->
+                        <div class="flex items-center gap-3 pt-2">
+                            <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition disabled:opacity-50"
+                                    @onclick="GuardarNuevoDocumento"
+                                    disabled="@(archivoPorSubir == null || modelo.IdExpediente == 0 || guardandoArchivo)">
+                                @(guardandoArchivo ? "Guardando..." : "Guardar documento")
+                            </button>
+
+                            @if (!string.IsNullOrWhiteSpace(mensajeDoc))
+                            {
+                                <span class="text-xs font-medium @(mensajeDocExito ? "text-emerald-700" : "text-rose-600")">
+                                    @mensajeDoc
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }
+                <!-- TABLA DE DOCUMENTOS DEL RECURSO -->
+                <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                    <table class="w-full text-left text-xs divide-y divide-slate-200">
+                        <thead class="bg-[#1E3A5F] text-white font-semibold">
+                            <tr>
+                                <th class="px-4 py-3">Tipo de documento</th>
+                                <th class="px-4 py-3">Nombre del archivo</th>
+                                <th class="px-4 py-3">Fecha</th>
+                                <th class="px-4 py-3">Usuario</th>
+                                <th class="px-4 py-3 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 bg-white text-slate-700">
+                            @if (!documentosGuardados.Any())
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center py-6 text-slate-400 italic">
+                                        No hay documentos guardados para este expediente.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var doc in documentosGuardados)
+                                {
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-4 py-2.5 font-medium text-slate-900">@doc.TipoDocumento</td>
+                                        <td class="px-4 py-2.5 text-indigo-600 truncate max-w-[200px]" title="@doc.NombreArchivo">
+                                            📄 @doc.NombreArchivo
+                                        </td>
+                                        <td class="px-4 py-2.5 whitespace-nowrap">@doc.FechaDocumento.ToString("dd/MM/yyyy")</td>
+                                        <td class="px-4 py-2.5 text-slate-600">@doc.Usuario</td>
+                                        <td class="px-4 py-2.5 text-center whitespace-nowrap">
+                                            <div class="inline-flex items-center gap-2 text-indigo-600 font-semibold">
+                                                <button type="button" class="hover:underline hover:text-indigo-800"
+                                                        @onclick="() => VerPDF(doc.IdArchivo)">
+                                                    Ver
+                                                </button>
+                                                <span class="text-slate-300">|</span>
+                                                <button type="button" class="hover:underline hover:text-indigo-800"
+                                                        @onclick="() => DescargarArchivoIndividual(doc.IdArchivo, doc.NombreArchivo)">
+                                                    Descargar
+                                                </button>
+                                                <span class="text-slate-300">|</span>
+                                                <!-- SOLUCIÓN AL BOTÓN ELIMINAR (Punto 2) -->
+                                                <button type="button" class="hover:underline text-rose-600 hover:text-rose-800"
+                                                        @onclick="() => EliminarDocumentoPDF(doc.IdArchivo, doc.NombreArchivo)">
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                 <!-- BITÁCORA DEL RECURSO -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+
+                    <div class="border-b border-slate-200 pb-3">
+                        <h2 class="text-base font-bold text-slate-800">Bitácora de Actuaciones</h2>
+                        <p class="text-xs text-slate-500">Historial cronológico de acuerdos y movimientos procesales</p>
+                    </div>
+
+                    @if (modelo.IdExpediente == 0)
+                    {
+                        <!-- MENSAJE DE APARTADO BLOQUEADO -->
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800">
+                            <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-xl shrink-0">
+                                🔒
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900">Apartado Bloqueado</h4>
+                                <p class="text-xs text-amber-700 mt-0.5">
+                                    Para registrar acuerdos o actuaciones en la bitácora, primero debes guardar los datos principales del expediente.
+                                </p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- FORMULARIO DE CAPTURA DE ACTUACIÓN -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-4">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Captura de nueva actuación</span>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- FECHA DE ACTUACIÓN -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">
+                                        Fecha actuación: <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="date"
+                                           class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                           @bind="nuevaActuacionFecha" />
+                                </div>
+
+                                <!-- TIPO DE ACTUACIÓN -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">
+                                        Actuación: <span class="text-rose-500">*</span>
+                                    </label>
+                                    <select class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                            @bind="nuevaActuacionTipo">
+                                        <option value="Registro">Registro</option>
+                                        <option value="Admisión">Admisión</option>
+                                        <option value="Contestación">Contestación</option>
+                                        <option value="Cierre de Instrucción">Cierre de Instrucción</option>
+                                        <option value="Resolución">Resolución</option>
+                                        <option value="Cumplimiento">Cumplimiento</option>
+                                        <option value="Acuerdo general">Acuerdo general</option>
+                                    </select>
+                                </div>
+
+                                <!-- DOCUMENTO VINCULADO -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">
+                                        Documento vinculado: <span class="text-slate-400 font-normal">(Opcional)</span>
+                                    </label>
+                                    <select class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                            @bind="nuevoDocumentoVinculado">
+                                        <option value="">-- Sin documento --</option>
+                                        @foreach (var doc in documentosGuardados)
+                                        {
+                                            <option value="@doc.NombreArchivo">@doc.NombreArchivo (@doc.TipoDocumento)</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <!-- DESCRIPCIÓN -->
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">
+                                        Descripción: <span class="text-slate-400 font-normal">(Opcional)</span>
+                                    </label>
+                                    <input type="text"
+                                           class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                           placeholder="Ej. Se admite el recurso y se requiere contestación al sujeto obligado..."
+                                           @bind="nuevaActuacionDescripcion" />
+                                </div>
+                            </div>
+
+                            <!-- BOTÓN AGREGAR ACTUACIÓN Y ALERTA -->
+                            <div class="flex items-center gap-3 pt-2">
+                                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition disabled:opacity-50"
+                                        @onclick="AgregarActuacion"
+                                        disabled="@(modelo.IdExpediente == 0 || guardandoActuacion || string.IsNullOrWhiteSpace(nuevaActuacionTipo) || nuevaActuacionFecha == default)">
+                                    @(guardandoActuacion ? "Guardando..." : "Agregar actuación")
+                                </button>
+
+                                @if (!string.IsNullOrWhiteSpace(mensajeActuacion))
+                                {
+                                    <div class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-all duration-300
+                                    @(mensajeActuacionExito ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200")">
+                                        <span>@mensajeActuacion</span>
+                                        <button type="button" class="text-slate-400 hover:text-slate-600 font-bold ml-1 leading-none" @onclick="() => mensajeActuacion = string.Empty">✕</button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    <!-- TABLA DE ACTUACIONES REGISTRADAS -->
+                    <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table class="w-full text-left text-xs divide-y divide-slate-200">
+                            <thead class="bg-[#1E3A5F] text-white font-semibold">
+                                <tr>
+                                    <th class="px-4 py-3">Fecha</th>
+                                    <th class="px-4 py-3">Actuación</th>
+                                    <th class="px-4 py-3">Descripción</th>
+                                    <th class="px-4 py-3">Documento vinculado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 bg-white text-slate-700">
+                                @if (!listaActuaciones.Any())
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-6 text-slate-400 italic">
+                                            No hay actuaciones registradas en la bitácora de este recurso.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var act in listaActuaciones)
+                                    {
+                                        <tr class="hover:bg-slate-50 transition">
+                                            <td class="px-4 py-2.5 whitespace-nowrap font-medium text-slate-900">
+                                                @act.FechaActuacion.ToString("dd/MM/yyyy")
+                                            </td>
+                                            <td class="px-4 py-2.5 whitespace-nowrap">
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700">
+                                                    @act.Actuacion
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-2.5">
+                                                @act.Descripcion
+                                            </td>
+                                            <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
+                                                @if (!string.IsNullOrWhiteSpace(act.DocumentoVinculado) && act.DocumentoVinculado != "—")
+                                                {
+                                                    <span class="text-indigo-600 font-medium">📄 @act.DocumentoVinculado</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-slate-400">—</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA GENERAL DE ÚLTIMOS EXPEDIENTES -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 space-y-3">
+            <h2 class="text-base font-bold text-slate-800">Últimos Registros / Modificaciones</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-600 uppercase font-semibold">
                     <tr>
-                        <th>Nombre</th>
-                        <th>Acciones</th>
+                        <th class="px-4 py-3">No. Recurso</th>
+                        <th class="px-4 py-3">Folio</th>
+                        <th class="px-4 py-3">Recurrente</th>
+                        <th class="px-4 py-3">Estatus</th>
+                        <th class="px-4 py-3 text-center">Docs</th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach (var pdf in ListaPDFs)
+                <tbody class="divide-y divide-slate-200 text-slate-700">
+                    @if (listaExpedientes == null || !listaExpedientes.Any())
                     {
-                        <tr>
-                            <td>@pdf.NombreArchivo</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary"
-                                        @onclick="() => DescargarPDF(pdf.IdArchivo)">
-                                    Descargar
-                                </button>
-                            </td>
-                        </tr>
+                        <tr><td colspan="6" class="text-center py-6 text-slate-400">No hay registros recientes.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var exp in listaExpedientes)
+                        {
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-3 font-semibold text-indigo-600">@exp.NumeroRecurso</td>
+                                <td class="px-4 py-3">@exp.FolioSolicitud</td>
+                                <td class="px-4 py-3">@exp.NombreRecurrente</td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[11px] font-medium @(exp.Estatus == "Concluido" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")">
+                                        @exp.Estatus
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 font-semibold text-slate-600">@exp.TotalDocumentos</span>
+                                </td>
+                                <td class="px-4 py-3 text-center space-x-1">
+                                    <button class="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded transition"
+                                            @onclick="() => CargarParaEditar(exp)">
+                                        Editar
+                                    </button>
+                                    <button class="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded transition"
+                                            @onclick="() => EliminarExpediente(exp)">
+                                        Eliminar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
-        }
-
-        <button class="btn btn-outline-secondary mt-2"
-                @onclick="() => MostrarListaDocumentos = false">
-            Cerrar
-        </button>
+        </div>
     </div>
-}
+    <script>
+        window.scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    </script>
+</div>
 
 @code {
+    private ExpedienteRevisionDTO modelo = new ExpedienteRevisionDTO();
+    private List<ExpedienteRevisionDTO> listaExpedientes = new();
 
-    private ExpedienteRevisionDTO Modelo = new ExpedienteRevisionDTO();
+    // Alertas principales
+    private string mensajeAlerta = string.Empty;
+    private string tipoAlerta = "success";
+    private CancellationTokenSource? ctsAlerta;
 
-    // ===============================================================
-    // GUARDAR EXPEDIENTE
-    // ===============================================================
-    private async Task Guardar()
+    // Variables y alertas exclusivas para PDFs (Unificadas)
+    private string nuevoDocTipo = "Acuerdo de admisión";
+    private DateTime nuevoDocFecha = DateTime.Today;
+    private string nuevoDocDescripcion = "";
+    private IBrowserFile? archivoPorSubir;
+    private Guid inputFileKey = Guid.NewGuid(); 
+    private bool guardandoArchivo = false;
+    private string mensajeDoc = "";
+    private bool mensajeDocExito = true;
+    private string nuevoDocUsuario = "";
+    private CancellationTokenSource? ctsAlertaDoc;
+    private List<ArchivoExpedienteDTO> documentosGuardados = new();
+
+    // Variables para la bitácora
+    private DateTime nuevaActuacionFecha = DateTime.Today;
+    private string nuevaActuacionTipo = "Admisión";
+    private string nuevaActuacionDescripcion = "";
+    private string nuevoDocumentoVinculado = "";
+    private bool guardandoActuacion = false;
+    private string mensajeActuacion = "";
+    private bool mensajeActuacionExito = true;
+    private CancellationTokenSource? ctsAlertaActuacion;
+    private List<BitacoraActuacionDTO> listaActuaciones = new();
+
+    private string modeloOriginalJson = string.Empty;
+    private bool archivosModificados = false;
+
+    // Detección unificada de cambios
+    private bool HayCambios
     {
-        var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", Modelo);
-
-        if (resp.IsSuccessStatusCode)
+        get
         {
-            var json = await resp.Content.ReadFromJsonAsync<CreacionExpedienteDTO>();
-            Modelo.IdExpediente = json?.IdExpedienteCreado ?? 0;
+            bool cambiosEnFormularioPDF = archivoPorSubir != null || !string.IsNullOrWhiteSpace(nuevoDocDescripcion);
+            bool cambiosEnFormularioBitacora = !string.IsNullOrWhiteSpace(nuevaActuacionDescripcion);
 
-            if (await JS.InvokeAsync<bool>("confirm",
-                "Expediente guardado correctamente.\n\n¿Desea generar PDF?"))
+            var jsonActual = JsonSerializer.Serialize(modelo);
+
+            if (modelo.IdExpediente == 0)
             {
-                await GenerarPDF();
+                var jsonVacio = JsonSerializer.Serialize(new ExpedienteRevisionDTO());
+                return jsonActual != jsonVacio || archivosModificados || cambiosEnFormularioPDF || cambiosEnFormularioBitacora;
+            }
+
+            return jsonActual != modeloOriginalJson || archivosModificados || cambiosEnFormularioPDF || cambiosEnFormularioBitacora;
+        }
+    }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "id")]
+    public int? IdExpedienteUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarListaExpedientes();
+
+        if (IdExpedienteUrl.HasValue && IdExpedienteUrl.Value > 0)
+        {
+            var expSeleccionado = listaExpedientes.FirstOrDefault(x => x.IdExpediente == IdExpedienteUrl.Value);
+            if (expSeleccionado != null)
+                await CargarParaEditar(expSeleccionado);
+            else
+            {
+                try
+                {
+                    var expRescatado = await Http.GetFromJsonAsync<ExpedienteRevisionDTO>($"api/RecursoRevision/Expediente/{IdExpedienteUrl.Value}");
+                    if (expRescatado != null && expRescatado.IdExpediente > 0)
+                        await CargarParaEditar(expRescatado);
+                }
+                catch { }
             }
         }
-        else
-            await JS.InvokeVoidAsync("alert", "Error al guardar.");
     }
 
-    // ===============================================================
-    // GENERAR PDF (EXPEDIENTE)
-    // ===============================================================
-    private async Task GenerarPDF()
+    private void CerrarAlerta()
     {
-        var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", Modelo);
+        ctsAlerta?.Cancel();
+        mensajeAlerta = string.Empty;
+        StateHasChanged();
+    }
 
-        if (resp.IsSuccessStatusCode)
+    private async Task CargarListaExpedientes()
+    {
+        try
         {
-            var pdf = await resp.Content.ReadAsByteArrayAsync();
+            var res = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>("api/RecursoRevision/Expediente/Lista");
+            if (res != null) listaExpedientes = res;
+        }
+        catch { }
+    }
 
-            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+    private async Task GuardarOActualizar()
+    {
+        if (string.IsNullOrWhiteSpace(modelo.NumeroRecurso) || string.IsNullOrWhiteSpace(modelo.FolioSolicitud) || string.IsNullOrWhiteSpace(modelo.Estatus))
+        {
+            MostrarMensaje("Número de Recurso, Folio de Solicitud y Estatus son obligatorios.", "error");
+            await JS.InvokeVoidAsync("scrollToTop");
+            return;
+        }
+
+        if (modelo.IdExpediente > 0 && !HayCambios)
+        {
+            MostrarMensaje("El expediente no ha sido editado.", "info");
+            await JS.InvokeVoidAsync("scrollToTop");
+            return;
+        }
+
+        try
+        {
+            if (modelo.IdExpediente == 0)
             {
-                ByteArray = pdf,
-                FileName = "ExpedienteRevision.pdf",
-                ContentType = "application/pdf"
-            });
+                if (listaExpedientes.Any(x => string.Equals(x.NumeroRecurso?.Trim(), modelo.NumeroRecurso?.Trim(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    MostrarMensaje($"El recurso '{modelo.NumeroRecurso}' ya existe.", "error");
+                    await JS.InvokeVoidAsync("scrollToTop");
+                    return;
+                }
+
+                var response = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", modelo);
+                if (response.IsSuccessStatusCode)
+                {
+                    ResetearFormulario();
+                    await CargarListaExpedientes();
+                    MostrarMensaje("Expediente guardado correctamente.", "success");
+                    await JS.InvokeVoidAsync("scrollToTop");
+                }
+            }
+            else
+            {
+                var response = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", modelo);
+                if (response.IsSuccessStatusCode)
+                {
+                    ResetearFormulario();
+                    await CargarListaExpedientes();
+                    MostrarMensaje("Expediente actualizado correctamente.", "success");
+                    await JS.InvokeVoidAsync("scrollToTop");
+                }
+            }
         }
-        else
-            await JS.InvokeVoidAsync("alert", "Error al generar PDF.");
-    }
-
-    // ===============================================================
-    // SUBIR PDF (INDEPENDIENTE DEL EXPEDIENTE)
-    // ===============================================================
-
-    private bool MostrarPanelPDF = false;
-    private IBrowserFile? ArchivoSeleccionado;
-    private string NombreArchivo = "";
-
-    public class ArchivoPDFDTO
-    {
-        public int IdArchivo { get; set; }
-        public string NombreArchivo { get; set; } = "";
-    }
-
-    private List<ArchivoPDFDTO> ListaPDFs = new();
-
-    private void OnFileSelected(InputFileChangeEventArgs e)
-    {
-        ArchivoSeleccionado = e.File;
-        NombreArchivo = e.File.Name;
-    }
-
-    private async Task GuardarPDF()
-    {
-        if (ArchivoSeleccionado == null)
+        catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", "Selecciona un PDF primero.");
+            MostrarMensaje($"Error: {ex.Message}", "error");
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+
+    private async Task CargarParaEditar(ExpedienteRevisionDTO exp)
+    {
+        modelo = JsonSerializer.Deserialize<ExpedienteRevisionDTO>(JsonSerializer.Serialize(exp)) ?? new ExpedienteRevisionDTO();
+        modeloOriginalJson = JsonSerializer.Serialize(modelo);
+        archivosModificados = false;
+
+        // Limpiamos los mensajes
+        mensajeDoc = "";
+        CerrarAlerta();
+
+        await CargarDocumentosDelExpediente(exp.IdExpediente);
+        await CargarBitacora(exp.IdExpediente);
+
+        MostrarMensaje($"Expediente {exp.NumeroRecurso} cargado.", "success");
+        await JS.InvokeVoidAsync("scrollToTop");
+    }
+
+    private async Task EliminarExpediente(ExpedienteRevisionDTO exp)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar el expediente '{exp.NumeroRecurso}'?")) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/RecursoRevision/Expediente/{exp.IdExpediente}");
+            if (response.IsSuccessStatusCode)
+            {
+                MostrarMensaje($"Expediente {exp.NumeroRecurso} eliminado.", "success");
+                if (modelo.IdExpediente == exp.IdExpediente) ResetearFormulario();
+                await CargarListaExpedientes();
+                await JS.InvokeVoidAsync("scrollToTop");
+            }
+        }
+        catch { }
+    }
+
+    private async Task LimpiarOCancelar()
+    {
+        // Ahora sí evalúa TODOS los cambios del formulario (incluyendo PDFs)
+        if (modelo.IdExpediente == 0 && !HayCambios)
+        {
+            MostrarMensaje("El formulario de captura ya se encuentra vacío.", "info");
             return;
         }
 
-        // Crear expediente vacío si no existe
-        if (Modelo.IdExpediente == 0)
+        bool confirmar = await JS.InvokeAsync<bool>("confirm", modelo.IdExpediente == 0 ? "¿Limpiar formulario?" : "¿Cancelar edición?");
+        if (confirmar)
         {
-            var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/CrearVacio", new { });
-            var json = await resp.Content.ReadFromJsonAsync<CreacionExpedienteDTO>();
-            Modelo.IdExpediente = json!.IdExpedienteCreado;
+            bool eraEdicion = modelo.IdExpediente > 0;
+            ResetearFormulario();
+            MostrarMensaje(eraEdicion ? "Edición cancelada." : "El formulario se encuentra limpio.", "info");
         }
-
-        var content = new MultipartFormDataContent();
-        var stream = ArchivoSeleccionado.OpenReadStream(long.MaxValue);
-
-        content.Add(new StreamContent(stream), "archivo", ArchivoSeleccionado.Name);
-        content.Add(new StringContent(Modelo.IdExpediente.ToString()), "idExpediente");
-
-        var resp2 = await Http.PostAsync("api/RecursoRevision/Expediente/SubirPDF", content);
-
-        if (resp2.IsSuccessStatusCode)
-        {
-            await JS.InvokeVoidAsync("alert", "PDF guardado correctamente.");
-            MostrarPanelPDF = false;
-            await CargarTodosLosPDFs();
-        }
-        else
-            await JS.InvokeVoidAsync("alert", "Error al guardar PDF.");
     }
 
-    // ===============================================================
-    // LISTAR TODOS LOS PDFs DE LA BD
-    // ===============================================================
-    private bool MostrarListaDocumentos = false;
-
-    private async Task MostrarDocumentosGuardados()
+    private void ResetearFormulario()
     {
-        MostrarListaDocumentos = true;
-        await CargarTodosLosPDFs();
+        modelo = new ExpedienteRevisionDTO();
+        modeloOriginalJson = string.Empty;
+
+        // Reset de PDFs (Punto 1)
+        documentosGuardados.Clear();
+        archivoPorSubir = null;
+        inputFileKey = Guid.NewGuid(); // Forzamos limpieza del HTML del archivo
+        archivosModificados = false;
+        mensajeDoc = "";
+
+        // Limpiamos los campos del formulario de carga
+        nuevoDocTipo = "Acuerdo de admisión";
+        nuevoDocFecha = DateTime.Today;
+        nuevoDocDescripcion = "";
+        nuevoDocUsuario = "";
+
+        // Reset de Bitácora
+        listaActuaciones.Clear();
+        nuevaActuacionFecha = DateTime.Today;
+        nuevaActuacionTipo = "Admisión";
+        nuevaActuacionDescripcion = "";
+        nuevoDocumentoVinculado = "";
+        mensajeActuacion = "";
+
+        StateHasChanged();
     }
 
-    private async Task CargarTodosLosPDFs()
+    private void MostrarMensaje(string msg, string tipo)
     {
-        ListaPDFs =
-            await Http.GetFromJsonAsync<List<ArchivoPDFDTO>>("api/RecursoRevision/Expediente/PDFs/Todos")
-            ?? new();
-    }
+        mensajeAlerta = msg;
+        tipoAlerta = tipo;
+        StateHasChanged();
 
-    // ===============================================================
-    // DESCARGAR PDF INDIVIDUAL
-    // ===============================================================
-    private async Task DescargarPDF(int idArchivo)
-    {
-        var resp = await Http.GetAsync($"api/RecursoRevision/Expediente/PDF/{idArchivo}");
+        ctsAlerta?.Cancel();
+        ctsAlerta = new CancellationTokenSource();
+        var token = ctsAlerta.Token;
 
-        if (!resp.IsSuccessStatusCode)
+        _ = Task.Run(async () =>
         {
-            await JS.InvokeVoidAsync("alert", "Error al descargar PDF.");
-            return;
-        }
-
-        // EXTRAER NOMBRE REAL DEL ARCHIVO DESDE LOS HEADERS HTTP
-        var contentDisposition = resp.Content.Headers.ContentDisposition;
-        string nombreReal = contentDisposition?.FileNameStar ?? contentDisposition?.FileName ?? $"archivo_{idArchivo}.pdf";
-
-        var bytes = await resp.Content.ReadAsByteArrayAsync();
-
-        await JS.InvokeVoidAsync("downloadFileFromByteArray", new
-        {
-            ByteArray = bytes,
-            FileName = nombreReal,   // 👈 USAR EL NOMBRE REAL
-            ContentType = "application/pdf"
+            try
+            {
+                await Task.Delay(5000, token);
+                if (!token.IsCancellationRequested)
+                    await InvokeAsync(() => { mensajeAlerta = string.Empty; StateHasChanged(); });
+            }
+            catch { }
         });
     }
 
+    // MÉTODOS DE GESTIÓN DOCUMENTAL DE PDFS Y METADATOS
+    private async Task CargarDocumentosDelExpediente(int idExpediente)
+    {
+        try { documentosGuardados = await Http.GetFromJsonAsync<List<ArchivoExpedienteDTO>>($"api/RecursoRevision/Expediente/{idExpediente}/PDFs") ?? new(); }
+        catch { documentosGuardados = new(); }
+    }
+
+    private void OnArchivoSeleccionado(InputFileChangeEventArgs e)
+    {
+        archivoPorSubir = e.File;
+        mensajeDoc = "";
+    }
+
+    private async Task GuardarNuevoDocumento()
+    {
+        // 1. Validar que exista un expediente guardado en base de datos
+        if (modelo.IdExpediente == 0)
+        {
+            MostrarMensajeDoc("Debes guardar primero el expediente antes de adjuntar documentos.", false);
+            return;
+        }
+
+        // 2. Validar campos obligatorios (Todos excepto nuevoDocDescripcion)
+        if (string.IsNullOrWhiteSpace(nuevoDocTipo) ||
+            nuevoDocFecha == default ||
+            string.IsNullOrWhiteSpace(nuevoDocUsuario) ||
+            archivoPorSubir == null)
+        {
+            MostrarMensajeDoc("Todos los campos marcados con (*) son obligatorios.", false);
+            return;
+        }
+
+        guardandoArchivo = true;
+        mensajeDoc = "";
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(modelo.IdExpediente.ToString()), "idExpediente");
+            content.Add(new StringContent(nuevoDocTipo.Trim()), "tipoDocumento");
+            content.Add(new StringContent(nuevoDocFecha.ToString("yyyy-MM-dd")), "fechaDocumento");
+            content.Add(new StringContent(nuevoDocDescripcion?.Trim() ?? ""), "descripcion");
+            content.Add(new StringContent(nuevoDocUsuario.Trim()), "usuario");
+
+            var fileContent = new StreamContent(archivoPorSubir.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoPorSubir.ContentType);
+            content.Add(fileContent, "archivo", archivoPorSubir.Name);
+
+            var resp = await Http.PostAsync("api/RecursoRevision/Expediente/SubirPDF", content);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                archivosModificados = true;
+                inputFileKey = Guid.NewGuid(); // Limpia el selector de archivos
+                archivoPorSubir = null;
+                nuevoDocDescripcion = "";
+
+                await CargarDocumentosDelExpediente(modelo.IdExpediente);
+
+                var expEnLista = listaExpedientes.FirstOrDefault(x => x.IdExpediente == modelo.IdExpediente);
+                if (expEnLista != null) { expEnLista.TotalDocumentos = documentosGuardados.Count; }
+
+                MostrarMensajeDoc($"Documento guardado exitosamente en el expediente {modelo.NumeroRecurso}.", true);
+            }
+            else
+            {
+                MostrarMensajeDoc("Error al intentar guardar el archivo en el servidor.", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensajeDoc($"Error: {ex.Message}", false);
+        }
+        finally
+        {
+            guardandoArchivo = false;
+            StateHasChanged();
+        }
+    }
+
+    // Eliminar Documento PDF
+    private async Task EliminarDocumentoPDF(int idArchivo, string nombreArchivo)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Deseas eliminar el documento '{nombreArchivo}'?")) return;
+
+        try
+        {
+            var res = await Http.DeleteAsync($"api/RecursoRevision/Expediente/PDF/{idArchivo}");
+            if (res.IsSuccessStatusCode)
+            {
+                archivosModificados = true;
+                await CargarDocumentosDelExpediente(modelo.IdExpediente);
+
+                // SOLUCIÓN AL PUNTO 4: Actualiza contador sin recargar toda la tabla
+                var expEnLista = listaExpedientes.FirstOrDefault(x => x.IdExpediente == modelo.IdExpediente);
+                if (expEnLista != null) { expEnLista.TotalDocumentos = documentosGuardados.Count; }
+
+                MostrarMensajeDoc($"Documento '{nombreArchivo}' eliminado correctamente.", true);
+            }
+            else
+            {
+                MostrarMensajeDoc("No se pudo eliminar el documento.", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensajeDoc($"Error de red: {ex.Message}", false);
+        }
+    }
+
+    private async Task VerPDF(int idArchivo)
+    {
+        await JS.InvokeVoidAsync("open", $"{Http.BaseAddress}api/RecursoRevision/Expediente/PDF/{idArchivo}", "_blank");
+    }
+
+    private async Task DescargarArchivoIndividual(int idArchivo, string nombreArchivo)
+    {
+        try
+        {
+            var bytes = await Http.GetByteArrayAsync($"api/RecursoRevision/Expediente/PDF/{idArchivo}");
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new { ByteArray = bytes, FileName = nombreArchivo, ContentType = "application/pdf" });
+        }
+        catch (Exception ex) { await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}"); }
+    }
+
+    // Temporizador local de 5 segundos para Alertas de PDFs
+    private void MostrarMensajeDoc(string msg, bool exito)
+    {
+        mensajeDoc = msg;
+        mensajeDocExito = exito;
+        StateHasChanged();
+
+        ctsAlertaDoc?.Cancel();
+        ctsAlertaDoc = new CancellationTokenSource();
+        var token = ctsAlertaDoc.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(5000, token);
+                if (!token.IsCancellationRequested)
+                    await InvokeAsync(() => { mensajeDoc = string.Empty; StateHasChanged(); });
+            }
+            catch { }
+        });
+    }
+
+    private async Task ConfirmarNavegacionInterna(LocationChangingContext context)
+    {
+        if (HayCambios)
+        {
+            var isConfirmed = await JS.InvokeAsync<bool>("confirm", "Tienes cambios sin guardar. ¿Estás seguro de que deseas salir y cancelar la edición?");
+            if (!isConfirmed)
+            {
+                context.PreventNavigation();
+            }
+        }
+    }
+
+    private async Task CargarBitacora(int idExpediente)
+    {
+        if (idExpediente <= 0)
+        {
+            listaActuaciones.Clear();
+            return;
+        }
+
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<BitacoraActuacionDTO>>($"api/RecursoRevision/Expediente/{idExpediente}/Bitacora");
+            listaActuaciones = res ?? new();
+        }
+        catch
+        {
+            listaActuaciones.Clear();
+        }
+    }
+
+    private async Task AgregarActuacion()
+    {
+        // 1. Validar que exista un expediente seleccionado
+        if (modelo.IdExpediente == 0)
+        {
+            MostrarMensajeActuacion("Debes guardar primero el expediente antes de agregar actuaciones.", false);
+            return;
+        }
+
+        // 2. Validar campos obligatorios (Fecha y Tipo de Actuación)
+        if (nuevaActuacionFecha == default || string.IsNullOrWhiteSpace(nuevaActuacionTipo))
+        {
+            MostrarMensajeActuacion("La fecha y el tipo de actuación son obligatorios.", false);
+            return;
+        }
+
+        guardandoActuacion = true;
+        mensajeActuacion = "";
+
+        try
+        {
+            var dto = new BitacoraActuacionDTO
+            {
+                IdExpediente = modelo.IdExpediente,
+                FechaActuacion = nuevaActuacionFecha,
+                Actuacion = nuevaActuacionTipo.Trim(),
+                Descripcion = nuevaActuacionDescripcion?.Trim() ?? string.Empty, // 👉 Opcional
+                DocumentoVinculado = string.IsNullOrWhiteSpace(nuevoDocumentoVinculado) ? null : nuevoDocumentoVinculado.Trim(),
+                Usuario = string.IsNullOrWhiteSpace(nuevoDocUsuario) ? "Usuario" : nuevoDocUsuario.Trim()
+            };
+
+            var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/Bitacora", dto);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                nuevaActuacionDescripcion = "";
+                nuevoDocumentoVinculado = "";
+                MostrarMensajeActuacion("Actuación agregada correctamente.", true);
+                await CargarBitacora(modelo.IdExpediente);
+            }
+            else
+            {
+                var errorServidor = await resp.Content.ReadAsStringAsync();
+                MostrarMensajeActuacion(string.IsNullOrWhiteSpace(errorServidor)
+                    ? "Error al registrar la actuación."
+                    : $"Servidor: {errorServidor}", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensajeActuacion($"Error: {ex.Message}", false);
+        }
+        finally
+        {
+            guardandoActuacion = false;
+            StateHasChanged();
+        }
+    }
+
+    private void MostrarMensajeActuacion(string msg, bool exito)
+    {
+        mensajeActuacion = msg;
+        mensajeActuacionExito = exito;
+        StateHasChanged();
+
+        ctsAlertaActuacion?.Cancel();
+        ctsAlertaActuacion?.Dispose();
+        ctsAlertaActuacion = new CancellationTokenSource();
+        var token = ctsAlertaActuacion.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(5000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        mensajeActuacion = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
 }

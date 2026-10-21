@@ -6,19 +6,18 @@
 
 @attribute [Authorize]
 
+@inject NavigationManager NavManager
+
 <div class="sidebar-header">
     <a class="brand-logo" href="/menu">
-        <span class="brand-icon-glow">
-            <i class="bi bi-shield-check"></i>
+        <span class="back-icon">
+            <i class="bi bi-arrow-left"></i>
         </span>
-        <span class="brand-text">Modulo de solicitudes</span>
+        <span class="brand-text">Volver al menú</span>
     </a>
-    <button title="Menú de navegación" class="mobile-toggle" @onclick="ToggleNavMenu">
-        <i class="bi bi-list"></i>
-    </button>
 </div>
 
-<div class="@NavMenuCssClass nav-scrollable custom-scrollbar" @onclick="ToggleNavMenu">
+<div class="nav-scrollable custom-scrollbar">
     <nav class="flex-column nav-menu-container">
 
         @* ============================================================
@@ -91,7 +90,7 @@
             <div class="nav-item">
                 <NavLink class="pro-nav-link" href="/menu/recursos-revision/estadisticas">
                     <i class="bi bi-bar-chart nav-icon"></i>
-                    <span class="nav-text">Estadísticas</span>
+                    <span class="nav-text">Datos Estadísticos</span>
                 </NavLink>
             </div>
         }
@@ -100,14 +99,13 @@
 </div>
 
 @code {
-    private bool EnModuloSolicitudes => NavManager.Uri.Contains("/menu/modulo-solicitudes");
-    private bool EnModuloRecursos => NavManager.Uri.Contains("/menu/recursos-revision");
+    private bool EnModuloSolicitudes => NavManager.Uri.Contains("/menu/modulo-solicitudes", StringComparison.OrdinalIgnoreCase);
+    private bool EnModuloRecursos => NavManager.Uri.Contains("/menu/recursos-revision", StringComparison.OrdinalIgnoreCase);
 
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+    protected override void OnInitialized()
+    {
+        NavManager.LocationChanged += (s, e) => StateHasChanged();
+    }
 }
 
 <style>
@@ -131,45 +129,63 @@
     .sidebar-header {
         height: 4.5rem;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1.25rem;
+        align-items: center; /* Centra el contenido verticalmente */
+        justify-content: flex-start; /* Alinea todo hacia la izquierda */
+        padding: 0 2rem;
         border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     .brand-logo {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 12px; /* Espacio perfecto entre el ícono y el texto */
         text-decoration: none;
-        color: white;
+        color: var(--sidebar-text-hover, #ffffff); /* Color del texto */
+        transition: opacity 0.2s ease;
+        width: 100%; /* Se asegura de usar todo el espacio del header */
+        min-width: 0; /* CLAVE: Permite que el contenedor se encoja */
     }
 
-    .brand-icon-glow {
-        background: linear-gradient(135deg, #6366f1, #3b82f6);
-        color: white;
-        width: 30px;
-        height: 30px;
+        .brand-logo:hover {
+            opacity: 0.8; /* Efecto sutil al pasar el mouse */
+        }
+
+    /* ================= DISEÑO DEL ÍCONO ================= */
+    .back-icon {
+        background-color: rgba(99, 102, 241, 0.1); /* Fondo muy sutil (Índigo transparente) */
+        color: #818cf8; /* Color del ícono (Índigo claro) */
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); /* Resplandor */
+        border-radius: 8px; /* Bordes redondeados modernos */
+        font-size: 1.2rem;
+        transition: all 0.2s ease;
+    }
+
+    /* Efecto hover específico para el ícono */
+    .brand-logo:hover .back-icon {
+        background-color: rgba(99, 102, 241, 0.2);
+        transform: translateX(-3px); /* Pequeña animación hacia la izquierda indicando "regreso" */
     }
 
     .brand-text {
-        font-size: 1.1rem;
-        font-weight: 700;
-        letter-spacing: -0.01em;
-        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.2;
+        /* Las siguientes dos líneas evitan que el texto se rompa en dos renglones si es muy largo */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
     }
 
     /* ================= CONTENEDOR PRINCIPAL ================= */
     .nav-scrollable {
         height: calc(100vh - 4.5rem);
         overflow-y: auto;
-        padding: 1.5rem 0;
+        padding: 0.1rem 0 1.5rem 0;
     }
 
     .nav-menu-container {
@@ -181,12 +197,12 @@
 
     /* Títulos de Sección */
     .nav-section-title {
-        font-size: 0.68rem;
+        font-size: 1rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #475569;
-        margin: 1.5rem 0 0.5rem 0.75rem;
+        color: #F0F0F0;
+        margin: 0.1rem 0 0.5rem 0.60rem;
     }
 
     .nav-section-divider {

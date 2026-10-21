@@ -1,260 +1,482 @@
 ﻿@page "/menu/recursos-revision/busqueda"
 
-@using System.Net.Http.Json
 @using SolicitudesShared.RecursosRevision
+@using System.Net.Http.Json
+@using System.Threading
+@using System.Text
+@using ClosedXML.Excel
+@using System.IO
 @inject HttpClient Http
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<h3 class="module-header">Búsqueda de Expedientes</h3>
-<p class="module-subtitle">Escriba el folio o número de recurso para buscar:</p>
 
-<input class="form-control"
-       placeholder="Escriba el folio o número de recurso..."
-       @bind="FolioBusqueda"
-       @oninput="Buscar" />
+<PageTitle>Búsqueda de Expedientes - Recursos de Revisión</PageTitle>
 
-@if (Resultados.Count == 0 && FolioBusqueda.Length > 0)
-{
-    <p class="text-muted mt-2">No se encontraron expedientes…</p>
-}
+<div class="p-6 max-w-7xl mx-auto space-y-6">
 
-@if (Resultados.Count > 0)
-{
-    <div class="table-responsive mt-3">
-        <table class="table table-bordered table-striped">
-            <thead class="table-primary">
-                <tr>
-                    <th>Editar</th>
-                    <th>Núm. Recurso</th>
-                    <th>Estatus</th>
-                    <th>Res. Sentido</th>
-                    <th>Contenido Solicitud</th>
-                    <th>Nombre Recurrente</th>
-                    <th>Sentido Contestación</th>
-                    <th>Fecha Notif. Adm.</th>
-                    <th>Respuesta</th>
-                    <th>Fecha Acuerdo</th>
-                    <th>Contenido Acuerdo</th>
-                    <th>Materia</th>
-                    <th>Razón</th>
-                    <th>Fecha Notif.</th>
-                    <th>Folio</th>
-                    <th>Fecha Contestación</th>
-                    <th>Fecha Acuerdo Final</th>
-                    <th>Contenido Acuerdo Final</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                @foreach (var row in Resultados)
-                {
-                    <tr>
-                        <td>
-                            <button class="btn btn-warning btn-sm"
-                                    @onclick="@(() => row.IsEditing = !row.IsEditing)">
-                                @((row.IsEditing ? "Cancel" : "Editar"))
-                            </button>
-
-                            @if (row.IsEditing)
-                            {
-                                <button class="btn btn-success btn-sm ms-2"
-                                        @onclick="@(() => Guardar(row))">
-                                    Guardar
-                                </button>
-                            }
-                        </td>
-
-                        @Cell(row, nameof(row.NumeroRecurso))
-                        @Cell(row, nameof(row.Estatus))
-                        @Cell(row, nameof(row.ResolucionSentido))
-                        @Cell(row, nameof(row.ContenidoSolicitud))
-                        @Cell(row, nameof(row.NombreRecurrente))
-                        @Cell(row, nameof(row.SentidoContestacion))
-                        @Cell(row, nameof(row.FechaNotificacionAdmision), true)
-                        @Cell(row, nameof(row.RespuestaSolicitud))
-                        @Cell(row, nameof(row.FechaAcuerdo), true)
-                        @Cell(row, nameof(row.ContenidoAcuerdo))
-
-                        @* MATERIA — ListBox *@
-                        <td>
-                            @if (row.IsEditing)
-                            {
-                                <select class="form-select form-select-sm"
-                                        @bind="row.MateriaRecurso">
-                                    <option value="">--</option>
-                                    <option>DAI</option>
-                                    <option>DP</option>
-                                </select>
-                            }
-                            else
-                            {
-                                @row.MateriaRecurso
-                            }
-                        </td>
-
-                        @Cell(row, nameof(row.RazonInterposicion))
-                        @Cell(row, nameof(row.FechaNotificacion), true)
-                        @Cell(row, nameof(row.FolioSolicitud))
-                        @Cell(row, nameof(row.FechaContestacionRecurso), true)
-                        @Cell(row, nameof(row.FechaAcuerdoFinal), true)
-                        @Cell(row, nameof(row.ContenidoAcuerdoFinal))
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <!-- ENCABEZADO -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Búsqueda Sincronizada de Recursos</h1>
+            <p class="text-sm text-slate-500">Consulta directa en tiempo real sobre la base de datos de expedientes</p>
+        </div>
+        <div class ="flex items-center gap-3">
+            <!-- BOTÓN EXPORTAR EXCEL -->
+            <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-2"
+                    @onclick="ExportarAExcel" disabled="@(!resultados.Any())">
+                <span>📊 Exportar Excel</span>
+            </button>            
+            
+            <!-- BOTÓN NUEVO EXPEDIENTE -->
+            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition"
+                    @onclick="IrACapturaNuevo">
+                + Nuevo Expediente
+            </button>
+        </div>
     </div>
-}
+
+    <!-- PANEL DE CONTROL DE BÚSQUEDA REACTIVA -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+
+        <!-- DISEÑO EN GRID (4 COLUMNAS) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+
+            <!-- ================= FILA 1 ================= -->
+            <!-- CAJA PRINCIPAL (Ocupa 2 columnas) -->
+            <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">
+                    Buscar por Número de Recurso, Folio o Recurrente:
+                </label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">🔍</span>
+                    <input type="text"
+                           class="w-full text-sm pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-slate-50 focus:bg-white transition"
+                           placeholder="Ej. RR/0001/2026, 123456 o Juan Pérez..."
+                           value="@terminoBusqueda"
+                           @oninput="OnBusquedaInput" />
+                </div>
+            </div>
+
+            <!-- FILTRO DE ESTATUS (Ocupa 1 columna) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Estatus Procesal:</label>
+                <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2.5 border bg-white"
+                        value="@filtroEstatus" @onchange="OnEstatusChanged">
+                    <option value="">-- Todos los estatus --</option>
+                    <option value="Admitido">Admitido</option>
+                    <option value="En trámite">En trámite</option>
+                    <option value="Concluido">Concluido</option>
+                </select>
+            </div>
+
+            <!-- FILTRO DE MATERIA (Ocupa 1 columna) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Materia:</label>
+                <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2.5 border bg-white"
+                        value="@filtroMateria" @onchange="OnMateriaChanged">
+                    <option value="">-- Todas las materias --</option>
+                    <option value="DAI">Acceso a la Información (DAI)</option>
+                    <option value="DP">Datos Personales (DP)</option>
+                </select>
+            </div>
+
+        <!-- ================= FILA 2 ================= -->
+            <!-- LÍMITE DE REGISTROS (Ocupa 1 columna) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Mostrar:</label>
+                <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2.5 border bg-white"
+                        value="@limiteRegistros" @onchange="OnLimiteChanged">
+                    <option value="10">10 registros</option>
+                    <option value="20">20 registros</option>
+                    <option value="30">30 registros</option>
+                    <option value="40">40 registros</option>
+                    <option value="50">50 registros</option>
+                    <option value="100">100 registros</option>
+                    <option value="200">200 registros</option>
+                    <option value="500">500 registros</option>
+                    <option value="10000">Todos</option>
+                </select>
+            </div>
+
+            <!-- FILTRO DE RESOLUCIÓN (Ocupa 1 columna) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Resolución:</label>
+                <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2.5 border bg-white"
+                        value="@filtroResolucion" @onchange="OnResolucionChanged">
+                    <option value="">-- Todas las resoluciones --</option>
+                    <option value="Confirma">Confirma</option>
+                    <option value="Revoca">Revoca</option>
+                    <option value="Modifica">Modifica</option>
+                    <option value="Sobresee">Sobresee</option>
+                </select>
+            </div>
+
+            <!-- BOTÓN LIMPIAR FILTROS (Ocupa 2 columnas, alineado abajo) -->
+            <div class="md:col-span-2 flex items-end">
+                @if (!string.IsNullOrWhiteSpace(terminoBusqueda) || !string.IsNullOrWhiteSpace(filtroEstatus) || !string.IsNullOrWhiteSpace(filtroMateria) || !string.IsNullOrWhiteSpace(filtroResolucion))
+                {
+                    <button class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-semibold transition flex items-center gap-2"
+                            title="Limpiar todos los filtros"
+                            @onclick="LimpiarFiltros">
+                        ✕ Limpiar filtros
+                    </button>
+                }
+            </div>
+
+        </div>
+
+        <!-- PIE DE PANEL -->
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+            <span>
+                @if (buscando)
+                {
+                    <span class="text-indigo-600 font-semibold animate-pulse">Consultando base de datos...</span>
+                }
+                else
+                {
+                    <span>Resultados coincidentes: <b>@resultados.Count()</b> expediente(s)</span>
+                }
+            </span>
+            <span class="text-slate-400 italic">Búsqueda reactiva a medida que escribe</span>
+        </div>
+    </div>
+
+    <!-- RESULTADOS EN TIEMPO REAL -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-600 uppercase font-semibold">
+                    <tr>
+                        <th class="px-3 py-3">No. Recurso</th>
+                        <th class="px-3 py-3">Folio</th>
+                        <th class="px-3 py-3">Recurrente</th>
+                        <th class="px-2 py-3 text-center">Materia</th>
+                        <th class="px-3 py-3 text-center">Estatus</th>
+                        <th class="px-3 py-3 text-center">Resolución</th>
+                        <th class="px-2 py-3 text-center">Docs</th>
+                        <th class="px-3 py-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-slate-700">
+                    @if (buscando && !resultados.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-slate-400">
+                                Buscando expedientes en el sistema...
+                            </td>
+                        </tr>
+                    }
+                    else if (!resultados.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-slate-400">
+                                No se encontraron expedientes coincidentes con el criterio especificado.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var exp in resultados)
+                        {
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="px-3 py-2.5 font-bold text-indigo-600 whitespace-nowrap">@exp.NumeroRecurso</td>
+                                <td class="px-3 py-2.5 font-medium whitespace-nowrap">@exp.FolioSolicitud</td>
+
+                                <!-- Nombre controlado para no empujar los botones -->
+                                <td class="px-3 py-2.5">
+                                    <div class="max-w-[140px] md:max-w-[190px] truncate" title="@exp.NombreRecurrente">
+                                        @exp.NombreRecurrente
+                                    </div>
+                                </td>
+
+                                <td class="px-2 py-2.5 text-center whitespace-nowrap">
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-semibold inline-block @(exp.MateriaRecurso == "DAI" ? "bg-sky-50 text-sky-700" : "bg-purple-50 text-purple-700")">
+                                        @exp.MateriaRecurso
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2.5 text-center whitespace-nowrap">
+                                    <span class="px-2 py-0.5 rounded-full text-[11px] font-medium inline-block @(exp.Estatus == "Concluido" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")">
+                                        @exp.Estatus
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2.5 text-center text-slate-500 whitespace-nowrap">
+                                    @(string.IsNullOrWhiteSpace(exp.SentidoResolucion) ? "—" : exp.SentidoResolucion)
+                                </td>
+                                <td class="px-2 py-2.5 text-center whitespace-nowrap">
+                                    <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 font-semibold text-slate-600">
+                                        @exp.TotalDocumentos
+                                    </span>
+                                </td>
+
+                                <!-- COLUMNA DE ACCIONES COMPACTA -->
+                                <td class="px-3 py-2.5 text-center whitespace-nowrap">
+                                    <div class="inline-flex items-center justify-center gap-1.5">
+                                        <!-- BOTÓN FICHA PDF -->
+                                        <button class="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded transition flex items-center gap-1"
+                                                title="Descargar Ficha Técnica en PDF"
+                                                @onclick="() => DescargarFichaPDF(exp)">
+                                            <span>📄 PDF</span>
+                                        </button>
+
+                                        <!-- BOTÓN ABRIR EXPEDIENTE -->
+                                        <button class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded transition"
+                                                title="Abrir en Expediente Digital"
+                                                @onclick="() => AbrirEnExpedienteDigital(exp.IdExpediente)">
+                                            📂 Abrir
+                                        </button>
+
+                                        <!-- BOTÓN ELIMINAR -->
+                                        <button class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded transition"
+                                                title="Eliminar expediente"
+                                                @onclick="() => EliminarExpedienteDesdeBusqueda(exp)">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 @code {
+    private string terminoBusqueda = string.Empty;
+    private string filtroEstatus = string.Empty;
+    private string filtroMateria = string.Empty;
+    private string filtroResolucion = string.Empty;
+    private int limiteRegistros = 10;
 
-    private string FolioBusqueda = "";
-    private List<ExpedienteRevisionDTO> Resultados = new();
+    private bool buscando = false;
 
-    // OPCIONES PARA LISTBOXES
-    private readonly string[] OpcionesEstatus = new[]
+    private List<ExpedienteRevisionDTO> resultados = new();
+    private CancellationTokenSource? cts;
+
+    protected override async Task OnInitializedAsync()
     {
-        "En trámite",
-        "Concluido"
-    };
-
-    private readonly string[] OpcionesResolucionSentido = new[]
-    {
-        "Confirma",
-        "Sobresee",
-        "Modifica",
-        "Revoca",
-        "Dar Respuesta"
-    };
-    // FIN OPCIONES LISTBOXES
-
-    private async Task Buscar(ChangeEventArgs e)
-    {
-        FolioBusqueda = e.Value?.ToString() ?? "";
-
-        if (string.IsNullOrWhiteSpace(FolioBusqueda))
-        {
-            Resultados.Clear();
-            return;
-        }
-
-        // La llamada a la API permanece igual, pero la API buscará en dos campos.
-        Resultados =
-            await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(
-                $"api/RecursoRevision/Expediente/Buscar?folio={FolioBusqueda}"
-            ) ?? new();
+        await EjecutarBusquedaAPI();
     }
 
-    private async Task Guardar(ExpedienteRevisionDTO row)
+    private void OnBusquedaInput(ChangeEventArgs e)
     {
-        var resp = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", row);
-
-        if (resp.IsSuccessStatusCode)
-        {
-            row.IsEditing = false;
-            await JS.InvokeVoidAsync("alert", "Cambios guardados.");
-        }
-        else
-        {
-            await JS.InvokeVoidAsync("alert", "Error al guardar cambios.");
-        }
+        terminoBusqueda = e.Value?.ToString() ?? string.Empty;
+        TriggerBusqueda();
     }
 
-    RenderFragment Cell(ExpedienteRevisionDTO row, string prop, bool isDate = false) => builder =>
+    private async Task OnEstatusChanged(ChangeEventArgs e)
     {
-        builder.OpenElement(0, "td");
+        filtroEstatus = e.Value?.ToString() ?? string.Empty;
+        await EjecutarBusquedaAPI();
+    }
 
-        var valor = row.GetType().GetProperty(prop)?.GetValue(row);
+    private async Task OnMateriaChanged(ChangeEventArgs e)
+    {
+        filtroMateria = e.Value?.ToString() ?? string.Empty;
+        await EjecutarBusquedaAPI();
+    }
 
-        // Identificadores de campo para Listbox
-        var isResolucionSentido = prop == nameof(ExpedienteRevisionDTO.ResolucionSentido);
-        var isEstatus = prop == nameof(ExpedienteRevisionDTO.Estatus);
+    private async Task OnResolucionChanged(ChangeEventArgs e)
+    {
+        filtroResolucion = e.Value?.ToString() ?? string.Empty;
+        await EjecutarBusquedaAPI();
+    }
 
-        // Determinar qué opciones usar (si aplica)
-        string[] opcionesListbox = null;
-        if (isResolucionSentido)
-            opcionesListbox = OpcionesResolucionSentido;
-        else if (isEstatus)
-            opcionesListbox = OpcionesEstatus;
+    private void TriggerBusqueda()
+    {
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+        var token = cts.Token;
 
-
-        if (row.IsEditing)
+        _ = Task.Run(async () =>
         {
-            if (isDate)
+            try
             {
-                // CAMPO DE FECHA
-                builder.OpenElement(1, "input");
-                builder.AddAttribute(2, "type", "date");
-                builder.AddAttribute(3, "class", "form-control form-control-sm");
-                builder.AddAttribute(4, "value", valor is DateTime dt ? dt.ToString("yyyy-MM-dd") : "");
-                builder.AddAttribute(5, "onchange",
-                    EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                    {
-                        if (DateTime.TryParse(e.Value?.ToString(), out var parsed))
-                            row.GetType().GetProperty(prop)?.SetValue(row, parsed);
-                        else
-                            row.GetType().GetProperty(prop)?.SetValue(row, null);
-                    }));
-                builder.CloseElement();
-            }
-            else if (opcionesListbox != null)
-            {
-                // CAMPO LISTBOX (Estatus o Resolución Sentido)
-                builder.OpenElement(1, "select");
-                builder.AddAttribute(2, "class", "form-select form-select-sm");
-                builder.AddAttribute(3, "onchange",
-                    EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                    {
-                        row.GetType().GetProperty(prop)?.SetValue(row, e.Value?.ToString());
-                    }));
-
-                // Opción por defecto
-                builder.OpenElement(4, "option");
-                builder.AddAttribute(5, "value", "");
-                builder.AddContent(6, "--Seleccione--");
-                builder.CloseElement();
-
-                // Opciones del Listbox
-                int seq = 7;
-                foreach (var opcion in opcionesListbox)
+                await Task.Delay(300, token);
+                if (!token.IsCancellationRequested)
                 {
-                    builder.OpenElement(seq++, "option");
-                    builder.AddAttribute(seq++, "value", opcion);
-
-                    // Marca la opción seleccionada
-                    if (opcion == valor?.ToString())
-                    {
-                        builder.AddAttribute(seq++, "selected", true);
-                    }
-
-                    builder.AddContent(seq++, opcion);
-                    builder.CloseElement();
+                    await InvokeAsync(EjecutarBusquedaAPI);
                 }
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
 
-                builder.CloseElement(); // Cierra el select
+    private async Task LimpiarFiltros()
+    {
+        terminoBusqueda = string.Empty;
+        filtroEstatus = string.Empty;
+        filtroMateria = string.Empty;
+        filtroResolucion = string.Empty;
+        await EjecutarBusquedaAPI();
+    }
+
+    private void AbrirEnExpedienteDigital(int idExpediente)
+    {
+        Navigation.NavigateTo($"/menu/recursos-revision/registro/expediente?id={idExpediente}", forceLoad: true);
+    }
+
+    private async Task EliminarExpedienteDesdeBusqueda(ExpedienteRevisionDTO exp)
+    {
+        // 1. Pedir confirmación al usuario
+        bool confirmar = await JS.InvokeAsync<bool>("confirm",
+            $"¿Estás seguro de eliminar el expediente '{exp.NumeroRecurso}' (Folio: {exp.FolioSolicitud}) y todos sus documentos vinculados? Esta acción no se puede deshacer.");
+
+        if (!confirmar) return;
+
+        try
+        {
+            // 2. Llamar a la API para borrar
+            var response = await Http.DeleteAsync($"api/RecursoRevision/Expediente/{exp.IdExpediente}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                // 3. Quitar el registro de la tabla en pantalla sin tener que consultar a la base de datos de nuevo
+                resultados.Remove(exp);
+                StateHasChanged();
+
+                // Mostrar alerta nativa rápida de éxito
+                await JS.InvokeVoidAsync("alert", $"Expediente {exp.NumeroRecurso} eliminado exitosamente.");
             }
             else
             {
-                // CAMPO DE TEXTO SIMPLE (Por defecto)
-                builder.OpenElement(1, "input");
-                builder.AddAttribute(2, "class", "form-control form-control-sm");
-                builder.AddAttribute(3, "value", valor?.ToString() ?? "");
-                builder.AddAttribute(4, "onchange",
-                    EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                    {
-                        row.GetType().GetProperty(prop)?.SetValue(row, e.Value?.ToString());
-                    }));
-                builder.CloseElement();
+                await JS.InvokeVoidAsync("alert", "No fue posible eliminar el expediente de la base de datos.");
             }
         }
-        else
+        catch (Exception ex)
         {
-            // MODO DE VISUALIZACIÓN
-            if (isDate && valor is DateTime dt)
-                builder.AddContent(6, dt.ToString("dd/MM/yyyy"));
-            else
-                builder.AddContent(6, valor?.ToString() ?? "--");
+            await JS.InvokeVoidAsync("alert", $"Error al eliminar expediente: {ex.Message}");
         }
+    }
 
-        builder.CloseElement();
-    };
+    private void IrACapturaNuevo()
+    {
+        Navigation.NavigateTo("/menu/recursos-revision/registro/expediente");
+    }
+
+    private async Task OnLimiteChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int limite))
+        {
+            limiteRegistros = limite;
+            await EjecutarBusquedaAPI();
+        }
+    }
+
+    private async Task EjecutarBusquedaAPI()
+    {
+        buscando = true;
+        StateHasChanged();
+
+        try
+        {
+            // SE AGREGA EL LÍMITE A LA URL
+            var url = $"api/RecursoRevision/Expediente/Buscar?criterio={Uri.EscapeDataString(terminoBusqueda)}&estatus={Uri.EscapeDataString(filtroEstatus)}&materia={Uri.EscapeDataString(filtroMateria)}&resolucion={Uri.EscapeDataString(filtroResolucion)}&limite={limiteRegistros}";
+            var res = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(url);
+            resultados = res ?? new();
+        }
+        catch (Exception ex)
+        {
+            resultados = new();
+        }
+        finally
+        {
+            buscando = false;
+            StateHasChanged();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // EXPORTAR A EXCEL SEGURO (.xlsx) USANDO CLOSEDXML
+    // -------------------------------------------------------------------------
+    private async Task ExportarAExcel()
+    {
+        if (!resultados.Any()) return;
+
+        try
+        {
+            var hora = DateTime.Now.ToString("HHmmss");
+            var nombre = $"Reporte_Recursos_{DateTime.Now:dd-MM-yyyy}_{hora}.xlsx";
+
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Recursos");
+
+            // Encabezados
+            var headers = new[] { "No. Recurso", "Folio Solicitud", "Recurrente", "Materia", "Estatus", "Resolución", "Total Docs.", "Fecha Presentación" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                worksheet.Cell(1, i + 1).Value = headers[i];
+            }
+
+            // Estilos de la cabecera (igual a tu otro módulo)
+            var rngHeaders = worksheet.Range(1, 1, 1, headers.Length);
+            rngHeaders.Style.Font.SetBold();
+            rngHeaders.Style.Fill.SetBackgroundColor(XLColor.DarkBlue);
+            rngHeaders.Style.Font.SetFontColor(XLColor.White);
+
+            // Llenado de datos
+            for (int i = 0; i < resultados.Count; i++)
+            {
+                var r = resultados[i];
+                int row = i + 2;
+
+                worksheet.Cell(row, 1).Value = r.NumeroRecurso;
+                worksheet.Cell(row, 2).Value = r.FolioSolicitud;
+                worksheet.Cell(row, 3).Value = r.NombreRecurrente;
+                worksheet.Cell(row, 4).Value = r.MateriaRecurso;
+                worksheet.Cell(row, 5).Value = r.Estatus;
+                worksheet.Cell(row, 6).Value = r.SentidoResolucion;
+                worksheet.Cell(row, 7).Value = r.TotalDocumentos;
+                worksheet.Cell(row, 8).Value = r.FechaPresentacion?.ToString("dd/MM/yyyy") ?? "—";
+            }
+
+            worksheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            var base64 = Convert.ToBase64String(stream.ToArray());
+
+            await JS.InvokeVoidAsync("downloadFileFromBytes", nombre, base64);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al exportar a Excel: {ex.Message}");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // CORRECCIÓN DEL ERROR DE DESCARGA PDF
+    // -------------------------------------------------------------------------
+    private async Task DescargarFichaPDF(ExpedienteRevisionDTO exp)
+    {
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente/PDF", exp);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                var pdfBytes = await resp.Content.ReadAsByteArrayAsync();
+
+                await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+                {
+                    ByteArray = pdfBytes,
+                    FileName = $"Expediente_{exp.NumeroRecurso?.Replace("/", "-") ?? "Revision"}.pdf",
+                    ContentType = "application/pdf"
+                });
+            }
+            else
+            {
+                // Extraemos el error real del servidor para saber por qué falla QuestPDF
+                var errorBackend = await resp.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("alert", $"El servidor rechazó generar el PDF. Revisa la consola para más detalles.");
+                await JS.InvokeVoidAsync("console.error", "Error detallado del PDF:", errorBackend);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error de comunicación: {ex.Message}");
+        }
+    }
 }

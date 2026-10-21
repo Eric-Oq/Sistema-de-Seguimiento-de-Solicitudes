@@ -1,6 +1,5 @@
 ﻿@page "/menu"
 @attribute [Authorize]
-@*@attribute [Authorize(Roles = "ADMINISTRADOR,CAPTURISTA,OBSERVADOR")]*@
 
 @using Microsoft.AspNetCore.Authorization
 @using Sistema_de_Seguimiento_de_Solicitudes.Services
@@ -10,7 +9,6 @@
 
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
-@inject HttpClient Http
 
 <PageTitle>Menú Principal</PageTitle>
 
@@ -19,33 +17,36 @@
     <p class="module-subtitle">Seleccione un módulo para continuar</p>
 
     <div class="cards-grid">
-        <!-- Tarjeta activa -->
+        <!-- 1. Módulo de Solicitudes -->
         <div class="module-card card-blue" @onclick="NavigateToModuloSolicitudes">
             <i class="fas fa-file-signature card-icon"></i>
             <span class="module-title">Módulo de Solicitudes</span>
             <span class="module-description">Gestión completa de solicitudes y expedientes</span>
         </div>
 
-        <!-- Módulo REAL ubicado en el espacio #2 -->
-        @if (true) // este bloque reemplaza al módulo #2
-        {
-            <div class="module-card card-green" @onclick="NavigateToRecursosRevision">
-                <i class="fas fa-folder-open card-icon"></i>
-                <span class="module-title">Recursos de Revisión</span>
-                <span class="module-description">Gestión de recursos presentados</span>
-            </div>
-        }
+        <!-- 2. Módulo de Recursos de Revisión -->
+        <div class="module-card card-green" @onclick="NavigateToRecursosRevision">
+            <i class="fas fa-folder-open card-icon"></i>
+            <span class="module-title">Recursos de Revisión</span>
+            <span class="module-description">Gestión de recursos presentados</span>
+        </div>
 
-        <!-- Espacios restantes siguen siendo "Nuevo módulo" -->
-        @for (int i = 3; i <= 12; i++)
+        <!-- 3. Módulo de Denuncias -->
+        <div class="module-card card-purple" @onclick="NavigateToDenuncias">
+            <i class="fas fa-bullhorn card-icon"></i>
+            <span class="module-title">Módulo de Denuncias</span>
+            <span class="module-description">Gestión, captura y seguimiento de denuncias</span>
+        </div>
+
+        <!-- 4-12. Espacios restantes "Próximamente" -->
+        @for (int i = 4; i <= 12; i++)
         {
-            <div class="module-card @GetCardColor(i)" @onclick="() => ShowComingSoon()">
+            <div class="module-card @GetCardColor(i)" @onclick="ShowComingSoon">
                 <i class="fas fa-plus-circle card-icon"></i>
                 <span class="module-title">Nuevo Módulo</span>
                 <span class="module-description">Próximamente...</span>
             </div>
         }
-
     </div>
 </div>
 
@@ -53,7 +54,7 @@
     private string GetCardColor(int index)
     {
         string[] colors = { "card-green", "card-purple", "card-orange", "card-red", "card-teal",
-                           "card-indigo", "card-pink", "card-cyan", "card-deep-orange", "card-lime", "card-brown" };
+                            "card-indigo", "card-pink", "card-cyan", "card-deep-orange", "card-lime", "card-brown" };
         return colors[(index - 2) % colors.Length];
     }
 
@@ -66,9 +67,14 @@
     {
         Navigation.NavigateTo("/menu/modulo-solicitudes/indice-expedientes");
     }
+
     private void NavigateToRecursosRevision()
     {
-        Navigation.NavigateTo("/menu/recursos-revision");
+        Navigation.NavigateTo("/menu/recursos-revision/registro/expediente");
     }
 
+    private void NavigateToDenuncias()
+    {
+        Navigation.NavigateTo("/menu/denuncias"); // Ruta de tu nuevo módulo
+    }
 }

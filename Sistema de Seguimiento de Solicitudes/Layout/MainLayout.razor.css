@@ -9,8 +9,19 @@ main {
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-color: #090e17 !important;
+    border-right: 1px solid #1e293b;
+    position: sticky;
+    top: 0;
+    height: 100vh; /* Fuerza a la barra a medir exactamente el alto del monitor */
+    flex-shrink: 0; /* Evita que el contenedor derecho la aplaste */
+    overflow-y: auto; /* Agrega una barra de desplazamiento interna por si el menú crece en el futuro */
 }
+
+    .sidebar::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+    }
 
 .top-row {
     background-color: #f7f7f7;

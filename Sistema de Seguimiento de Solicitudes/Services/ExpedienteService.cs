@@ -14,21 +14,21 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services
             _http = http;
         }
 
-        // ✅ Obtener lista completa de expedientes
+        // Obtener lista completa de expedientes
         public async Task<List<ExpedienteDTO>> Lista()
         {
             var response = await _http.GetFromJsonAsync<ResponseAPI<List<ExpedienteDTO>>>("api/Expedientes/Lista");
             return response != null && response.Exito ? response.Data! : new List<ExpedienteDTO>();
         }
 
-        // ✅ Buscar un expediente por ID
+        // Buscar un expediente por ID
         public async Task<ExpedienteDTO> Buscar(int id)
         {
             var response = await _http.GetFromJsonAsync<ResponseAPI<ExpedienteDTO>>($"api/Expedientes/Buscar/{id}");
             return response != null && response.Exito ? response.Data! : new ExpedienteDTO();
         }
 
-        // ✅ Crear un expediente
+        // Crear un expediente
         public async Task<int> Crear(ExpedienteDTO expediente)
         {
             var response = await _http.PostAsJsonAsync("api/Expedientes/Crear", expediente);
@@ -37,7 +37,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services
             return result != null && result.Exito ? result.Data : 0;
         }
 
-        // ✅ Eliminar un expediente
+        // Eliminar un expediente
         public async Task<bool> Eliminar(int id)
         {
             var response = await _http.DeleteAsync($"api/Expedientes/Eliminar/{id}");
@@ -46,7 +46,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services
             return result != null && result.Exito;
         }
 
-        // ✅ Actualizar un expediente
+        // Actualizar un expediente
         public async Task<bool> Actualizar(ExpedienteDTO expediente)
         {
             var response = await _http.PutAsJsonAsync($"api/Expedientes/Actualizar/{expediente.Id}", expediente);
@@ -55,7 +55,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services
             return result != null && result.Exito;
         }
 
-        // ✅ Buscar por folio o contenido (nuevo)
+        // Buscar por folio o contenido (nuevo)
         public async Task<List<ExpedienteDTO>> BuscarPorTexto(string filtro)
         {
             var response = await _http.GetFromJsonAsync<ResponseAPI<List<ExpedienteDTO>>>(

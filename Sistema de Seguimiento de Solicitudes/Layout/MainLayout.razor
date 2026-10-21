@@ -13,39 +13,36 @@
     <RadzenTheme Theme="material" />
 </HeadContent>
 
+<!-- Necesario para que calendario y modales no colapsen -->
 <RadzenComponents />
 
-<div class="page">
+<div class="page flex-row">
+    <!-- Panel lateral oscuro -->
     <div class="sidebar">
         <NavMenu />
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <button class="btn-primary" @onclick="MainMenuClicked">Menú Principal</button>
-        </div>
-
-        <article class="content px-4">
+    <!-- Contenedor principal limpio -->
+    <main class="w-100">
+        <!-- Aquí se cargarán las páginas de tu módulo -->
+        <article class="content px-4 py-4">
             @Body
         </article>
     </main>
 </div>
 
 @code {
+    // Si cambiaste el nombre del archivo, asegúrate de cambiar "MainLayout" aquí
     private DotNetObjectReference<MainLayout>? objRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            // Mantiene viva la seguridad del sistema
             objRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("startInactivityWatcher", objRef);
         }
-    }
-
-    private void MainMenuClicked()
-    {
-        NavigationManager.NavigateTo("/menu");
     }
 
     [JSInvokable]

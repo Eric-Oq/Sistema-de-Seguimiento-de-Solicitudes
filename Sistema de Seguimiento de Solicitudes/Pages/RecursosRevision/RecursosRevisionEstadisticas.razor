@@ -1,135 +1,629 @@
 ﻿@page "/menu/recursos-revision/estadisticas"
 @using SolicitudesShared.RecursosRevision
 @using System.Net.Http.Json
+@using ClosedXML.Excel
+@using System.IO
+@using System.Globalization
 @inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
 
-<h3 class="text-primary">Bandeja de Datos Estadísticos</h3>
-<p class="text-secondary">Filtra por mes, año y materia según la Fecha de Acuerdo Final</p>
-
-<div class="row g-2 align-items-center mb-3">
-
-    <!-- MES -->
-    <div class="col-auto">
-        <select class="form-select" @bind="MesSeleccionado">
-            <option value="">— Mes —</option>
-            @for (int i = 1; i <= 12; i++)
-            {
-                <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
-            }
-        </select>
+<!-- ENCABEZADO EJECUTIVO -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800">Dashboard Estadístico de Recursos de Revisión</h1>
+        <p class="text-sm text-slate-500">Monitoreo en tiempo real, distribución porcentual e inspección directa de expedientes</p>
     </div>
-
-    <!-- AÑO -->
-    <div class="col-auto">
-        <input type="number"
-               class="form-control"
-               placeholder="Año (ej. 2025)"
-               @bind="AnioSeleccionadoString"
-               style="width:120px;" />
-    </div>
-
-    <!-- MATERIA -->
-    <div class="col-auto">
-        <select class="form-select" @bind="MateriaSeleccionada" style="width:150px;">
-            <option value="">— Materia —</option>
-            <option value="DAI">DAI</option>
-            <option value="DP">DP</option>
-        </select>
-    </div>
-
-    <!-- BOTONES -->
-    <div class="col-auto">
-        <button class="btn btn-primary" @onclick="Cargar">Buscar</button>
-        <button class="btn btn-secondary ms-2" @onclick="Limpiar">Limpiar</button>
+    <div class="flex items-center gap-2">
+        <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                @onclick="ExportarExcelEstadisticas" disabled="@(!estadisticas.Any() || cargando)">
+            <span>📊 Exportar Reporte Excel</span>
+        </button>
     </div>
 </div>
 
-@if (Cargando)
-{
-    <div>Obteniendo datos...</div>
-}
-else if (Lista.Count == 0)
-{
-    <div class="text-muted">No hay datos para los filtros indicados.</div>
-}
-else
-{
-    <div class="table-responsive mt-3">
-        <table class="table table-bordered">
-            <thead style="background-color:#0d6efd; color:white;">
-                <tr>
-                    <th>Concepto</th>
-                    <th>Cantidad de recursos de revisión</th>
-                    <th>Desglose de los Recursos de Revisión</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in Lista)
+<!-- PANEL DE FILTROS (RANGOS DE TIEMPO Y MATERIA) -->
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-100">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Criterios de Análisis:</span>
+
+        @if (cargando)
+        {
+            <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600">
+                <span class="inline-block animate-spin h-3.5 w-3.5 border-2 border-indigo-600 border-t-transparent rounded-full"></span>
+                <span>Actualizando métricas...</span>
+            </div>
+        }
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+
+        <!-- RANGO: Fecha de Inicio -->
+        <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Desde (Fecha Pres.):</label>
+            <input type="date"
+                   min="2000-01-01" max="2099-12-31"
+                   class="w-full text-sm rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 bg-white"
+                   @bind="fechaInicio" @bind:after="CargarEstadisticas" />
+        </div>
+
+        <!-- RANGO: Fecha Fin -->
+        <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Hasta (Fecha Pres.):</label>
+            <input type="date"
+                   min="2000-01-01" max="2099-12-31"
+                   class="w-full text-sm rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 bg-white"
+                   @bind="fechaFin" @bind:after="CargarEstadisticas" />
+        </div>
+
+        <!-- FILTRO TRADICIONAL DE AÑO COMO RESPALDO -->
+        <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">O filtrar solo por Año:</label>
+            <input type="number"
+                   class="w-full text-sm rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2"
+                   placeholder="Todos los años"
+                   @bind="anioSeleccionado" @bind:after="CargarEstadisticas" />
+        </div>
+
+        <!-- FILTRO DE MATERIA -->
+        <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Materia:</label>
+            <div class="flex items-center gap-2">
+                <select class="w-full text-sm rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 bg-white"
+                        @bind="materiaSeleccionada" @bind:after="CargarEstadisticas">
+                    <option value="">-- Todas las materias (DAI y DP) --</option>
+                    <option value="DAI">Acceso a la Información (DAI)</option>
+                    <option value="DP">Datos Personales (DP)</option>
+                </select>
+
+                @if (fechaInicio.HasValue || fechaFin.HasValue || anioSeleccionado.HasValue || !string.IsNullOrWhiteSpace(materiaSeleccionada))
                 {
-                    <tr>
-                        <td>@r.Concepto</td>
-                        <td>@r.Cantidad</td>
-                        <td style="white-space:normal;">@r.Recursos</td>
-                    </tr>
+                    <button type="button"
+                            class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition"
+                            title="Limpiar filtros"
+                            @onclick="LimpiarFiltros">
+                        ✕
+                    </button>
                 }
-            </tbody>
-        </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ÁREA DE REPORTE Y DESGLOSE -->
+@if (!estadisticas.Any() && !cargando)
+{
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center text-slate-400">
+        <span class="text-3xl block mb-2">📋</span>
+        <p class="text-sm">No se encontraron métricas para los criterios seleccionados.</p>
+    </div>
+}
+else if (estadisticas.Any())
+{
+    <!-- TOTAL DE RECURSOS REGISTRADOS (EXTRAÍDO A TARJETA PRINCIPAL) -->
+    <div class="bg-indigo-900 text-white rounded-xl shadow-sm p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between border border-indigo-800">
+        <div>
+            <h2 class="text-lg font-bold tracking-wide uppercase flex items-center gap-2">
+                <span>📁</span> Universo de Expedientes Filtrados
+            </h2>
+            <p class="text-indigo-200 text-xs mt-1">Total de recursos contabilizados que sirven como base para los reportes procesales.</p>
+        </div>
+        <div class="mt-4 md:mt-0 flex items-center gap-4">
+            <div class="text-right">
+                <span class="block text-4xl font-extrabold text-white">@TotalRegistrados</span>
+                <span class="block text-[10px] font-semibold text-indigo-300 uppercase tracking-wider mt-1">Recursos Registrados</span>
+            </div>
+            @if (TotalRegistrados > 0)
+            {
+                <button type="button"
+                        class="h-10 w-10 bg-indigo-700 hover:bg-indigo-600 rounded-lg flex items-center justify-center transition border border-indigo-500 shadow-sm"
+                        title="Ver listado del universo filtrado"
+                        @onclick='() => AbrirModalPorNombre("registrados")'>
+                    ↗
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- TABLAS PARALELAS CON BARRAS DE PROPORCIÓN E INSPECCIÓN -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+        <!-- COLUMNA IZQUIERDA: FLUJO OPERATIVO Y ESTATUS -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                        <span>📊</span> Estatus Operativo del Recurso
+                    </h2>
+                    <p class="text-xs text-slate-500">Proporción calculada respecto a la base total</p>
+                </div>
+            </div>
+
+            <div class="divide-y divide-slate-100 flex-1">
+                @foreach (var fila in EstadisticasConceptosOperativos)
+                {
+                    var pct = CalcularPorcentaje(fila.Cantidad, TotalRegistrados);
+                    var folios = ExtraerFolios(fila.Recursos);
+
+                    <div class="p-4 hover:bg-slate-50 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-slate-800">@fila.Concepto</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 font-medium">@pct%</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold rounded-full @(fila.Cantidad > 0 ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : "bg-slate-100 text-slate-400")">
+                                    @fila.Cantidad
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Barra de progreso visual -->
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-3">
+                            <div class="bg-indigo-600 h-full rounded-full transition-all duration-500" style="width: @(pct)%"></div>
+                        </div>
+
+                        <!-- Vista previa compacta + Botón Drill-Down -->
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 flex-wrap overflow-hidden">
+                                @if (!folios.Any())
+                                {
+                                    <span class="text-xs text-slate-400 italic">Sin expedientes en este rubro</span>
+                                }
+                                else
+                                {
+                                    @foreach (var f in folios.Take(3))
+                                    {
+                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-mono border border-slate-200">
+                                            @f
+                                        </span>
+                                    }
+                                    @if (folios.Count > 3)
+                                    {
+                                        <span class="text-[11px] text-slate-400 font-medium">+@(folios.Count - 3) más</span>
+                                    }
+                                }
+                            </div>
+
+                            @if (folios.Any())
+                            {
+                                <button type="button"
+                                        class="shrink-0 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition"
+                                        @onclick="() => AbrirModalDesglose(fila)">
+                                    Ver listado (@folios.Count) ↗
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: SENTIDO DE LAS RESOLUCIONES -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                        <span>⚖️</span> Sentido de las Resoluciones
+                    </h2>
+                    <p class="text-xs text-slate-500">Distribución porcentual sobre las resoluciones emitidas</p>
+                </div>
+                <span class="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg">
+                    Total: @TotalResoluciones
+                </span>
+            </div>
+
+            <div class="divide-y divide-slate-100 flex-1">
+                @foreach (var fila in EstadisticasSentidos)
+                {
+                    var pct = CalcularPorcentaje(fila.Cantidad, TotalResoluciones);
+                    var folios = ExtraerFolios(fila.Recursos);
+                    var nombreLimpio = fila.Concepto.Replace("Sentido: ", "");
+
+                    <div class="p-4 hover:bg-slate-50 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-slate-800">@nombreLimpio</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 font-medium">@pct%</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold rounded-full @(fila.Cantidad > 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-slate-100 text-slate-400")">
+                                    @fila.Cantidad
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Barra de progreso visual -->
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-3">
+                            <div class="bg-emerald-600 h-full rounded-full transition-all duration-500" style="width: @(pct)%"></div>
+                        </div>
+
+                        <!-- Vista previa compacta + Botón Drill-Down -->
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 flex-wrap overflow-hidden">
+                                @if (!folios.Any())
+                                {
+                                    <span class="text-xs text-slate-400 italic">Sin resoluciones en este sentido</span>
+                                }
+                                else
+                                {
+                                    @foreach (var f in folios.Take(3))
+                                    {
+                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-mono border border-slate-200">
+                                            @f
+                                        </span>
+                                    }
+                                    @if (folios.Count > 3)
+                                    {
+                                        <span class="text-[11px] text-slate-400 font-medium">+@(folios.Count - 3) más</span>
+                                    }
+                                }
+                            </div>
+
+                            @if (folios.Any())
+                            {
+                                <button type="button"
+                                        class="shrink-0 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg transition"
+                                        @onclick="() => AbrirModalDesglose(fila)">
+                                    Ver listado (@folios.Count) ↗
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+}
+
+<!-- CAPA 4: MODAL INTERACTIVO DE DESGLOSE (DRILL-DOWN) -->
+@if (mostrarModal && conceptoSeleccionado != null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]">
+
+            <!-- Cabecera del Modal -->
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-800">@conceptoSeleccionado.Concepto</h3>
+                    <p class="text-xs text-slate-500">
+                        Total contabilizado: <strong>@conceptoSeleccionado.Cantidad</strong> expediente(s) — Haz clic en un folio para abrirlo
+                    </p>
+                </div>
+                <button type="button"
+                        class="h-8 w-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center font-bold"
+                        @onclick="CerrarModal">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Barra de herramientas del Modal -->
+            <div class="px-6 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+                <input type="text"
+                       class="w-full sm:w-72 text-xs rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+                       placeholder="🔎 Filtrar folio dentro de este listado..."
+                       @bind="filtroModal" @bind:event="oninput" />
+
+                <div class="flex items-center gap-2">
+                    @if (!string.IsNullOrEmpty(mensajeCopiado))
+                    {
+                        <span class="text-xs font-semibold text-emerald-600">@mensajeCopiado</span>
+                    }
+                    <button type="button"
+                            class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+                            @onclick="CopiarFoliosAlPortapapeles">
+                        📋 Copiar todos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cuadrícula de Folios Interactivos -->
+            <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+                @if (!FoliosModalFiltrados.Any())
+                {
+                    <div class="text-center py-8 text-slate-400 text-xs">
+                        No hay folios que coincidan con "@filtroModal".
+                    </div>
+                }
+                else
+                {
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                        @foreach (var folio in FoliosModalFiltrados)
+                        {
+                            <button type="button"
+                                    class="group px-3 py-2.5 bg-white hover:bg-indigo-600 border border-slate-200 hover:border-indigo-600 rounded-xl shadow-sm transition flex items-center justify-between text-left"
+                                    title="Ir al expediente @folio"
+                                    @onclick="() => IrAlExpedientePorFolio(folio)">
+                                <span class="font-mono text-xs font-bold text-slate-700 group-hover:text-white truncate">
+                                    @folio
+                                </span>
+                                <span class="text-xs text-slate-300 group-hover:text-indigo-200">↗</span>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Pie del Modal -->
+            <div class="px-6 py-3 bg-white border-t border-slate-200 flex justify-between items-center">
+                <span class="text-xs text-slate-400">
+                    Mostrando @FoliosModalFiltrados.Count() de @foliosEnModal.Count folios
+                </span>
+                <button type="button"
+                        class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg transition"
+                        @onclick="CerrarModal">
+                    Cerrar ventana
+                </button>
+            </div>
+        </div>
     </div>
 }
 
 @code {
-    private int? MesSeleccionado = null;
-    private string AnioSeleccionadoString = "";
-    private string MateriaSeleccionada = "";   // ✔ NUEVO CAMPO
+    // Filtros de Rango de Fecha y Año
+    private DateTime? fechaInicio;
+    private DateTime? fechaFin;
+    private int? anioSeleccionado;
 
-    private List<EstadisticaDTO> Lista = new();
-    private bool Cargando = false;
+    // Filtros Complementarios
+    private string materiaSeleccionada = string.Empty;
 
-    private async Task Cargar()
+    private bool cargando = false;
+    private List<EstadisticaDTO> estadisticas = new();
+
+    // Estado del Modal Drill-Down
+    private bool mostrarModal = false;
+    private EstadisticaDTO? conceptoSeleccionado;
+    private List<string> foliosEnModal = new();
+    private string filtroModal = string.Empty;
+    private string mensajeCopiado = string.Empty;
+
+    // --- SEGMENTACIÓN EN MEMORIA DE RESULTADOS ---
+
+    // 1. Extraemos solo el total de registrados para la tarjeta principal
+    private int TotalRegistrados =>
+        estadisticas.FirstOrDefault(x => x.Concepto.Contains("registrados", StringComparison.OrdinalIgnoreCase))?.Cantidad ?? 0;
+
+    // 2. Filtramos la tabla izquierda para que NO muestre la fila de "registrados" ni "sentido"
+    private IEnumerable<EstadisticaDTO> EstadisticasConceptosOperativos =>
+        estadisticas.Where(x =>
+            !x.Concepto.StartsWith("Sentido", StringComparison.OrdinalIgnoreCase) &&
+            !x.Concepto.Contains("registrados", StringComparison.OrdinalIgnoreCase));
+
+    // 3. Sentidos de resolución para la tabla derecha
+    private IEnumerable<EstadisticaDTO> EstadisticasSentidos =>
+        estadisticas.Where(x => x.Concepto.StartsWith("Sentido", StringComparison.OrdinalIgnoreCase));
+
+    private int TotalResoluciones =>
+        EstadisticasSentidos.Sum(x => x.Cantidad);
+
+    private IEnumerable<string> FoliosModalFiltrados =>
+        string.IsNullOrWhiteSpace(filtroModal)
+            ? foliosEnModal
+            : foliosEnModal.Where(f => f.Contains(filtroModal.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
     {
-        Cargando = true;
-        Lista.Clear();
+        await CargarEstadisticas();
+    }
 
-        int? anio = null;
-        if (int.TryParse(AnioSeleccionadoString, out var y))
-            anio = y;
-
-        string url = "api/RecursoRevision/Estadisticas";
-
-        var query = new List<string>();
-
-        if (MesSeleccionado.HasValue)
-            query.Add($"mes={MesSeleccionado.Value}");
-
-        if (anio.HasValue)
-            query.Add($"anio={anio.Value}");
-
-        if (!string.IsNullOrWhiteSpace(MateriaSeleccionada))
-            query.Add($"materia={MateriaSeleccionada}");
-
-        if (query.Count > 0)
-            url += "?" + string.Join("&", query);
+    private async Task CargarEstadisticas()
+    {
+        cargando = true;
+        StateHasChanged();
 
         try
         {
+            var queryParams = new List<string>();
+
+            // Solo se envían las fechas si tienen un año válido (evita enviar años incompletos como 0002)
+            if (fechaInicio.HasValue && fechaInicio.Value.Year >= 1950)
+                queryParams.Add($"fechaInicio={fechaInicio.Value:yyyy-MM-dd}");
+
+            if (fechaFin.HasValue && fechaFin.Value.Year >= 1950)
+                queryParams.Add($"fechaFin={fechaFin.Value:yyyy-MM-dd}");
+
+            // Respaldos (Si la API aún opera por año/mes en lugar de rango)
+            if (anioSeleccionado.HasValue && anioSeleccionado.Value > 0)
+                queryParams.Add($"anio={anioSeleccionado.Value}");
+
+            if (!string.IsNullOrWhiteSpace(materiaSeleccionada))
+                queryParams.Add($"materia={Uri.EscapeDataString(materiaSeleccionada)}");
+
+            string url = "api/RecursoRevision/Estadisticas";
+            if (queryParams.Any())
+            {
+                url += "?" + string.Join("&", queryParams);
+            }
+
             var res = await Http.GetFromJsonAsync<List<EstadisticaDTO>>(url);
-            if (res != null) Lista = res;
+            estadisticas = res ?? new();
         }
-        catch
+        catch (Exception ex)
         {
-            Lista = new List<EstadisticaDTO>();
+            estadisticas = new();
+            await JS.InvokeVoidAsync("alert", $"Error al cargar estadísticas: {ex.Message}");
         }
         finally
         {
-            Cargando = false;
+            cargando = false;
+            StateHasChanged();
         }
     }
 
-    private void Limpiar()
+    private async Task LimpiarFiltros()
     {
-        MesSeleccionado = null;
-        AnioSeleccionadoString = "";
-        MateriaSeleccionada = "";   // ✔ LIMPIA EL FILTRO
-        Lista.Clear();
+        fechaInicio = null;
+        fechaFin = null;
+        anioSeleccionado = null;
+        materiaSeleccionada = string.Empty;
+        await CargarEstadisticas();
+    }
+
+    // Utilidades de formato y porcentaje
+    private int CalcularPorcentaje(int valor, int total)
+    {
+        if (total <= 0 || valor <= 0) return 0;
+        var pct = (int)Math.Round((double)valor * 100 / total);
+        return Math.Min(pct, 100);
+    }
+
+    private List<string> ExtraerFolios(string cadenaRecursos)
+    {
+        if (string.IsNullOrWhiteSpace(cadenaRecursos)) return new List<string>();
+
+        return cadenaRecursos
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim('(', ')', ' '))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+    }
+
+    // Lógica del Modal Drill-Down
+    private void AbrirModalDesglose(EstadisticaDTO item)
+    {
+        conceptoSeleccionado = item;
+        foliosEnModal = ExtraerFolios(item.Recursos);
+        filtroModal = string.Empty;
+        mensajeCopiado = string.Empty;
+        mostrarModal = true;
+    }
+
+    private void AbrirModalPorNombre(string palabraClave)
+    {
+        var item = estadisticas.FirstOrDefault(x => x.Concepto.Contains(palabraClave, StringComparison.OrdinalIgnoreCase));
+        if (item != null && item.Cantidad > 0)
+        {
+            AbrirModalDesglose(item);
+        }
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+        conceptoSeleccionado = null;
+        foliosEnModal.Clear();
+    }
+
+    private async Task CopiarFoliosAlPortapapeles()
+    {
+        if (!FoliosModalFiltrados.Any()) return;
+        var texto = string.Join(", ", FoliosModalFiltrados);
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", texto);
+        mensajeCopiado = "✓ Copiados";
+        StateHasChanged();
+    }
+
+    private async Task IrAlExpedientePorFolio(string numeroRecurso)
+    {
+        try
+        {
+            var res = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>($"api/RecursoRevision/Expediente/Buscar?criterio={Uri.EscapeDataString(numeroRecurso)}");
+            var encontrado = res?.FirstOrDefault(x => string.Equals(x.NumeroRecurso?.Trim(), numeroRecurso.Trim(), StringComparison.OrdinalIgnoreCase)) ?? res?.FirstOrDefault();
+
+            if (encontrado != null && encontrado.IdExpediente > 0)
+            {
+                NavManager.NavigateTo($"/menu/recursos-revision/registro/expediente?id={encontrado.IdExpediente}");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"No se encontró el ID del expediente {numeroRecurso}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al abrir el expediente: {ex.Message}");
+        }
+    }
+
+    private async Task ExportarExcelEstadisticas()
+    {
+        if (!estadisticas.Any()) return;
+
+        try
+        {
+            var hora = DateTime.Now.ToString("HHmmss");
+            var nombre = $"Estadisticas_RR_{DateTime.Now:dd-MM-yyyy}_{hora}.xlsx";
+
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Estadísticas RR");
+
+            string textoFiltro = $"Filtros aplicados - Desde: {(fechaInicio?.ToString("dd/MM/yyyy") ?? "Todas")}, Hasta: {(fechaFin?.ToString("dd/MM/yyyy") ?? "Todas")}, Año: {(anioSeleccionado?.ToString() ?? "Todos")}, Materia: {(string.IsNullOrEmpty(materiaSeleccionada) ? "Todas" : materiaSeleccionada)}";
+            worksheet.Cell(1, 1).Value = textoFiltro;
+            worksheet.Range(1, 1, 1, 3).Merge().Style.Font.SetItalic().Font.SetFontColor(XLColor.DimGray);
+
+            int currentRow = 3;
+
+            // --- TABLA 1: RECURSOS REGISTRADOS (UNIVERSO) ---
+            var baseRegistrados = estadisticas.FirstOrDefault(x => x.Concepto.Contains("registrados", StringComparison.OrdinalIgnoreCase));
+            if (baseRegistrados != null)
+            {
+                worksheet.Cell(currentRow, 1).Value = "UNIVERSO TOTAL FILTRADO";
+                worksheet.Range(currentRow, 1, currentRow, 3).Merge().Style.Font.SetBold().Font.SetFontColor(XLColor.FromArgb(49, 46, 129));
+                currentRow++;
+
+                worksheet.Cell(currentRow, 1).Value = baseRegistrados.Concepto;
+                worksheet.Cell(currentRow, 2).Value = baseRegistrados.Cantidad;
+                worksheet.Cell(currentRow, 3).Value = baseRegistrados.Recursos;
+                worksheet.Range(currentRow, 1, currentRow, 3).Style.Fill.SetBackgroundColor(XLColor.Indigo).Font.SetFontColor(XLColor.White).Font.SetBold();
+                currentRow += 2;
+            }
+
+            // --- TABLA 2: CONCEPTOS OPERATIVOS ---
+            worksheet.Cell(currentRow, 1).Value = "REPORTE POR ESTATUS OPERATIVO";
+            worksheet.Range(currentRow, 1, currentRow, 3).Merge().Style.Font.SetBold().Font.SetFontColor(XLColor.FromArgb(49, 46, 129));
+            currentRow++;
+
+            worksheet.Cell(currentRow, 1).Value = "Concepto";
+            worksheet.Cell(currentRow, 2).Value = "Cantidad";
+            worksheet.Cell(currentRow, 3).Value = "Desglose de Recursos";
+            var headerRange1 = worksheet.Range(currentRow, 1, currentRow, 3);
+            headerRange1.Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.FromArgb(49, 46, 129)).Font.SetFontColor(XLColor.White);
+            currentRow++;
+
+            foreach (var est in EstadisticasConceptosOperativos)
+            {
+                worksheet.Cell(currentRow, 1).Value = est.Concepto;
+                worksheet.Cell(currentRow, 2).Value = est.Cantidad;
+                worksheet.Cell(currentRow, 2).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                worksheet.Cell(currentRow, 3).Value = est.Recursos;
+                worksheet.Cell(currentRow, 3).Style.Alignment.SetWrapText(true);
+                currentRow++;
+            }
+
+            currentRow += 2;
+
+            // --- TABLA 3: SENTIDO DE RESOLUCIÓN ---
+            worksheet.Cell(currentRow, 1).Value = "REPORTE POR SENTIDO DE RESOLUCIÓN";
+            worksheet.Range(currentRow, 1, currentRow, 3).Merge().Style.Font.SetBold().Font.SetFontColor(XLColor.FromArgb(5, 150, 105));
+            currentRow++;
+
+            worksheet.Cell(currentRow, 1).Value = "Sentido de Resolución";
+            worksheet.Cell(currentRow, 2).Value = "Cantidad";
+            worksheet.Cell(currentRow, 3).Value = "Desglose de Recursos";
+            var headerRange2 = worksheet.Range(currentRow, 1, currentRow, 3);
+            headerRange2.Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.FromArgb(5, 150, 105)).Font.SetFontColor(XLColor.White);
+            currentRow++;
+
+            foreach (var est in EstadisticasSentidos)
+            {
+                worksheet.Cell(currentRow, 1).Value = est.Concepto.Replace("Sentido: ", "");
+                worksheet.Cell(currentRow, 2).Value = est.Cantidad;
+                worksheet.Cell(currentRow, 2).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                worksheet.Cell(currentRow, 3).Value = est.Recursos;
+                worksheet.Cell(currentRow, 3).Style.Alignment.SetWrapText(true);
+                currentRow++;
+            }
+
+            worksheet.Columns(1, 2).AdjustToContents();
+            worksheet.Column(3).Width = 80;
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            var base64 = Convert.ToBase64String(stream.ToArray());
+
+            await JS.InvokeVoidAsync("downloadFileFromBytes", nombre, base64);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al generar el archivo Excel: {ex.Message}");
+        }
     }
 }

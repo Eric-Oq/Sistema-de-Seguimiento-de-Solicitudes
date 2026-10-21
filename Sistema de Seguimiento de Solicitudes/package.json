@@ -12,5 +12,9 @@
   "dependencies": {
     "axe-core": "^4.10.3",
     "puppeteer": "^24.9.0"
+  },
+  "type": "commonjs",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
   }
 }
