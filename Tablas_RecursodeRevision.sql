@@ -4,9 +4,9 @@ GO
 -- ============================================================================
 -- 1. TABLA MAESTRA DEL EXPEDIENTE (Estructurada en los 4 Bloques Procesales)
 -- ============================================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MT_EXPEDIENTE_RECURSO')
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'EXPEDIENTE_RECURSO')
 BEGIN
-    CREATE TABLE MT_EXPEDIENTE_RECURSO (
+    CREATE TABLE EXPEDIENTE_RECURSO (
         -- IDENTIFICADOR PRINCIPAL
         ID_EXPEDIENTE INT IDENTITY(1,1) PRIMARY KEY,
 
@@ -64,9 +64,9 @@ GO
 -- ============================================================================
 -- 2. TABLA DE GESTIÓN Y VINCULACIÓN DE ARCHIVOS PDF
 -- ============================================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MT_EXPEDIENTE_ARCHIVOS')
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'EXPEDIENTE_ARCHIVOS')
 BEGIN
-    CREATE TABLE MT_EXPEDIENTE_ARCHIVOS (
+    CREATE TABLE EXPEDIENTE_ARCHIVOS (
         ID_ARCHIVO INT IDENTITY(1,1) PRIMARY KEY,
         ID_EXPEDIENTE INT NOT NULL,
         NOMBRE_ARCHIVO NVARCHAR(255) NOT NULL,
@@ -78,7 +78,7 @@ BEGIN
         FECHA_REGISTRO DATETIME NOT NULL DEFAULT GETDATE(),
         
         CONSTRAINT FK_EXPEDIENTE_ARCHIVOS FOREIGN KEY (ID_EXPEDIENTE) 
-            REFERENCES MT_EXPEDIENTE_RECURSO(ID_EXPEDIENTE) 
+            REFERENCES EXPEDIENTE_RECURSO(ID_EXPEDIENTE)
             ON DELETE CASCADE
     );
 END;
@@ -87,9 +87,9 @@ GO
 -- ============================================================================
 -- 3. TABLA DE BITÁCORA Y LÍNEA DE TIEMPO PROCESAL DEL EXPEDIENTE
 -- ============================================================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MT_EXPEDIENTE_BITACORA')
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'EXPEDIENTE_BITACORA')
 BEGIN
-    CREATE TABLE MT_EXPEDIENTE_BITACORA (
+    CREATE TABLE EXPEDIENTE_BITACORA (
         ID_ACTUACION INT IDENTITY(1,1) PRIMARY KEY,
         ID_EXPEDIENTE INT NOT NULL,
         FECHA_ACTUACION DATE NOT NULL,
@@ -101,7 +101,7 @@ BEGIN
 
         -- Relación foránea: si se borra el expediente, se limpian sus actuaciones
         CONSTRAINT FK_EXPEDIENTE_BITACORA FOREIGN KEY (ID_EXPEDIENTE) 
-            REFERENCES MT_EXPEDIENTE_RECURSO(ID_EXPEDIENTE) 
+            REFERENCES EXPEDIENTE_RECURSO(ID_EXPEDIENTE)
             ON DELETE CASCADE
     );
 END;

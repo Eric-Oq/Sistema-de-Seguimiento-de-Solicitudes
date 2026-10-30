@@ -5,8 +5,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using QuestPDF.Infrastructure;   // 👉 IMPORTANTE
+using Dapper;
 
 var builder = WebApplication.CreateBuilder(args);
+
+DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 // 👉 **ACTIVA LA LICENCIA DE QUESTPDF**
 QuestPDF.Settings.License = LicenseType.Community;
