@@ -6,9 +6,11 @@
 @using System.Text
 @using ClosedXML.Excel
 @using System.IO
+@using Microsoft.Extensions.Logging
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject ILogger<RecursoRevisionBusqueda> Logger
 
 
 <PageTitle>Búsqueda de Expedientes - Recursos de Revisión</PageTitle>
@@ -315,7 +317,7 @@
 
     private void AbrirEnExpedienteDigital(int idExpediente)
     {
-        Navigation.NavigateTo($"/menu/recursos-revision/registro/expediente?id={idExpediente}", forceLoad: true);
+        Navigation.NavigateTo($"/menu/recursos-revision/registro/expediente?id={idExpediente}");
     }
 
     private async Task EliminarExpedienteDesdeBusqueda(ExpedienteRevisionDTO exp)
@@ -379,6 +381,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error al buscar expedientes de recursos de revisión.");
             resultados = new();
         }
         finally

@@ -80,7 +80,7 @@
 
     bool showHeader = true;
 
-    private ClaimsPrincipal usuarioActual;
+    private ClaimsPrincipal usuarioActual = new(new ClaimsIdentity());
     private bool esAdminOSupervision;
 
     private List<EventoSolicitud> eventos = new List<EventoSolicitud>();

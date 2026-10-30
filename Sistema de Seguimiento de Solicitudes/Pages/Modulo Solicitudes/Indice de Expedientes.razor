@@ -70,7 +70,7 @@
                                 <td class="text-nombre">@expediente.NombreSolicitante</td>
                                 <td class="text-date">@(expediente.FechaInicio.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
                                 <td style="text-align: center;">
-                                    <span class="status-badge @GetStatusClass(expediente.Estado)">@expediente.Estado</span>
+                                    <span class="status-badge @GetStatusClass(expediente.Estado ?? string.Empty)">@expediente.Estado</span>
                                 </td>
                                 <td>
                                     <div class="content-cell">
