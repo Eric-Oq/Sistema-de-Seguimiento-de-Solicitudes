@@ -16,10 +16,10 @@ namespace SolicitudesAPI.Models
         public DateTime FechaAcuerdo { get; set; }
 
         [Required(ErrorMessage = "El contenido del acuerdo es obligatorio")]
-        public string ContenidoAcuerdo { get; set; }
+        public string ContenidoAcuerdo { get; set; } = string.Empty;
 
         // Navegación (Indica que este acuerdo pertenece a una Denuncia específica)
         [ForeignKey("DenunciaId")]
-        public virtual Denuncia Denuncia { get; set; }
+        public virtual Denuncia Denuncia { get; set; } = null!;
     }
 }

@@ -11,7 +11,6 @@ namespace SolicitudesAPI
 
         // Colores institucionales
         private readonly string ColorPrimario = "#1E3A5F";      // Azul institucional oscuro
-        private readonly string ColorSecundario = "#3B82F6";    // Azul acento
         private readonly string ColorFondoBloque = "#F8FAFC";   // Gris pizarra claro
         private readonly string ColorBorde = "#E2E8F0";         // Gris neutro
         private readonly string ColorTextoMuted = "#64748B";    // Texto secundario

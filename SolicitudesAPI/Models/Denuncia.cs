@@ -11,17 +11,17 @@ namespace SolicitudesAPI.Models
 
         [Required(ErrorMessage = "El número de expediente es obligatorio")]
         [StringLength(50)]
-        public string NumeroExpediente { get; set; } // Ej. DEN/0001/2025
+        public string NumeroExpediente { get; set; } = string.Empty; // Ej. DEN/0001/2025
 
         [Required(ErrorMessage = "La razón de interposición es obligatoria")]
-        public string RazonInterposicion { get; set; }
+        public string RazonInterposicion { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La fracción y artículo son obligatorios")]
-        public string FraccionArticulo { get; set; }
+        public string FraccionArticulo { get; set; } = string.Empty;
 
         [Required]
         [StringLength(50)]
-        public string EstatusActual { get; set; } // Ej. En trámite, Concluido, Prevención
+        public string EstatusActual { get; set; } = string.Empty; // Ej. En trámite, Concluido, Prevención
 
         public DateTime? FechaAdmision { get; set; }
 
