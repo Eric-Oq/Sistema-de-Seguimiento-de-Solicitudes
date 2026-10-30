@@ -49,7 +49,7 @@
     public async Task CerrarSesionAuto()
     {
         await CustomAuthStateProvider.RemoveToken();
-        NavigationManager.NavigateTo("/login", true);
+        NavigationManager.NavigateTo("/login");
     }
 
     public void Dispose()

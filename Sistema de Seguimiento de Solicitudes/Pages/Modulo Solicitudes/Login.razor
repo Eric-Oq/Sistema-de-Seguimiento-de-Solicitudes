@@ -79,7 +79,6 @@
                     <button type="submit" class="btn-submit" disabled="@IsLoading">
                         @if (IsLoading)
                         {
-                            <span class="spinner"></span>
                             <span>Autenticando...</span>
                         }
                         else
@@ -113,8 +112,6 @@
         try
         {
             LoginResponse response = await AuthService.Login(sessionLogin);
-            response.Flag = true;
-            IsLoading = false;
 
             if (!response.Flag)
             {
@@ -122,8 +119,7 @@
             }
             else
             {
-                await CustomAuthStateProvider.SetToken(response.Token);
-                NavigationManager.NavigateTo("/menu", forceLoad: true);
+                NavigationManager.NavigateTo("/menu");
             }
         }
         catch (Exception)
@@ -470,18 +466,6 @@
         z-index: 10;
     }
 
-    /* ================= ANIMACIONES GLOBALES (ESCAPADAS) ================= */
-    .spinner {
-        width: 22px;
-        height: 22px;
-        border: 3px solid rgba(255, 255, 255, 0.3);
-        border-radius: 50%;
-        border-top-color: white;
-        animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        position: relative;
-        z-index: 10;
-    }
-
     /* 🔥 Clases de entrada en Cascada (Stagger) 🔥 */
     .stagger-1, .stagger-2, .stagger-3, .stagger-4, .stagger-5 {
         opacity: 0;
@@ -499,10 +483,6 @@
         opacity: 0;
         animation: fadeIn 1s ease forwards;
         animation-delay: 0.3s;
-    }
-
-    @@keyframes spin {
-        to { transform: rotate(360deg); }
     }
 
     @@keyframes slideUpFade {

@@ -64,9 +64,9 @@ namespace SolicitudesAPI.Controllers
             var user = new Usuario
             {
                 NombreUsuario = usuariosDTO.NombreUsuario,
-                password = new PasswordHasher<Usuario>().HashPassword(null, usuariosDTO.password),
                 Rol = usuariosDTO.Rol
             };
+            user.password = new PasswordHasher<Usuario>().HashPassword(user, usuariosDTO.password);
 
             _context.Usuarios.Add(user);
             await _context.SaveChangesAsync();

@@ -41,7 +41,7 @@
     private async Task LogoutClicked()
     {
         await AuthService.Logout();
-        NavigationManager.NavigateTo("/Login", forceLoad: true);
+        NavigationManager.NavigateTo("/Login");
     }
 
     private void IrACrearUsuarios()

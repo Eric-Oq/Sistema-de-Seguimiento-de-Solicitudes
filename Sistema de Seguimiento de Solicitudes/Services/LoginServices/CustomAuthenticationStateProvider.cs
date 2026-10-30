@@ -45,15 +45,14 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
                 await _jSRuntime.InvokeVoidAsync("localStorage.setItem", _tokenKey, token);
             }
 
-            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-            await Task.Yield();
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
         }
 
         public async Task RemoveToken()
         {
             await _jSRuntime.InvokeVoidAsync("localStorage.removeItem", _tokenKey);
             _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
-            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
         }
 
         private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
@@ -65,7 +64,7 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
 
             if (keyValuePairs != null)
             {
-                claims.AddRange(keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString())));
+                claims.AddRange(keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value?.ToString() ?? string.Empty)));
             }
 
             return claims;
