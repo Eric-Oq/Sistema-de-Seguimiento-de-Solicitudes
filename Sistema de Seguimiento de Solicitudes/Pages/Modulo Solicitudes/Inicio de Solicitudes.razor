@@ -1,6 +1,6 @@
 ﻿@page "/menu/modulo-solicitudes/inicio-solicitudes"
 
-@attribute [Authorize]
+@attribute [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
 
 @using Microsoft.AspNetCore.Authorization
 @using System.Collections.Generic

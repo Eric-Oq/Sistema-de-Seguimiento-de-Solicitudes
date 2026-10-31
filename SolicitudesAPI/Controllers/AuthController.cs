@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -15,6 +16,7 @@ namespace SolicitudesAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class AuthController : ControllerBase
     {
         private readonly SistemaSolicitudesContext _context;
@@ -30,6 +32,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpGet("Lista_Usuarios")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN")]
         public async Task<IActionResult> Lista_Usuarios()
         {
             var responseApi = new ResponseAPI<List<UsuariosDTO>>();
@@ -43,8 +46,8 @@ namespace SolicitudesAPI.Controllers
                     {
                         Id = usuarios.Id,
                         NombreUsuario = usuarios.NombreUsuario,
-                        password = usuarios.password,
-                        Rol = usuarios.Rol
+                        password = string.Empty,
+                        Rol = NormalizarRol(usuarios.Rol)
                     });
                 }
                 responseApi.Exito = true;
@@ -59,12 +62,32 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpPost("register")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN")]
         public async Task<IActionResult> Register(UsuariosDTO usuariosDTO)
         {
+            if (string.IsNullOrWhiteSpace(usuariosDTO.NombreUsuario)
+                || string.IsNullOrWhiteSpace(usuariosDTO.password)
+                || string.IsNullOrWhiteSpace(usuariosDTO.Rol))
+            {
+                return BadRequest(new { message = "Usuario, contraseña y rol son obligatorios." });
+            }
+
+            var rol = NormalizarRol(usuariosDTO.Rol);
+            var rolesPermitidos = new[] { "ADMINISTRADOR", "SUPERVISIÓN", "CAPTURA", "CONSULTA" };
+            if (!rolesPermitidos.Contains(rol, StringComparer.Ordinal))
+            {
+                return BadRequest(new { message = "El rol seleccionado no es válido." });
+            }
+
+            if (User.IsInRole("SUPERVISIÓN") && rol == "ADMINISTRADOR")
+            {
+                return Forbid();
+            }
+
             var user = new Usuario
             {
                 NombreUsuario = usuariosDTO.NombreUsuario,
-                Rol = usuariosDTO.Rol
+                Rol = rol
             };
             user.password = new PasswordHasher<Usuario>().HashPassword(user, usuariosDTO.password);
 
@@ -82,6 +105,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginDTO loginDTO)
         {
             var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == loginDTO.NombreUsuario);
@@ -100,7 +124,7 @@ namespace SolicitudesAPI.Controllers
                 var authClaims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.NombreUsuario),
-                    new Claim(ClaimTypes.Role, user.Rol),
+                    new Claim(ClaimTypes.Role, NormalizarRol(user.Rol)),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
@@ -117,6 +141,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpGet("Buscar/{id}")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN")]
         public async Task<ActionResult> Buscar(int id)
         {
             var responseApi = new ResponseAPI<UsuariosDTO>();
@@ -131,8 +156,8 @@ namespace SolicitudesAPI.Controllers
                     var UsuariosDTO = new UsuariosDTO
                     {
                         NombreUsuario = dbUsuarios.NombreUsuario,
-                        password = dbUsuarios.password,
-                        Rol = dbUsuarios.Rol
+                        password = string.Empty,
+                        Rol = NormalizarRol(dbUsuarios.Rol)
                     };
 
                     responseApi.Exito = true;
@@ -154,6 +179,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpDelete("Eliminar/{id}")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> Eliminar(int id)
         {
             var responseApi = new ResponseAPI<int>();
@@ -185,6 +211,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpPost("CambiarContrasena")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> CambiarContrasena([FromBody] CambiarContrasenaRequest request)
         {
             var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
@@ -213,6 +240,16 @@ namespace SolicitudesAPI.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        private static string NormalizarRol(string? rol) =>
+            rol?.Trim().ToUpperInvariant() switch
+            {
+                "ADMIN" or "ADMINISTRADOR" => "ADMINISTRADOR",
+                "SUPERVISION" or "SUPERVISIÓN" => "SUPERVISIÓN",
+                "CAPTURA" => "CAPTURA",
+                "CONSULTA" => "CONSULTA",
+                _ => rol?.Trim() ?? string.Empty
+            };
 
     }
 }

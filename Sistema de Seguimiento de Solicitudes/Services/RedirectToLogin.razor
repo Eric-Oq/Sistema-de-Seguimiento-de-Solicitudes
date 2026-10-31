@@ -5,7 +5,8 @@
 @code {
     protected override void OnInitialized()
     {
-		Navigation.NavigateTo("/login");
-        
+        var currentPath = $"/{Navigation.ToBaseRelativePath(Navigation.Uri)}";
+        var loginUrl = $"/login?returnUrl={Uri.EscapeDataString(currentPath)}";
+        Navigation.NavigateTo(loginUrl, new NavigationOptions { ReplaceHistoryEntry = true });
     }
 }

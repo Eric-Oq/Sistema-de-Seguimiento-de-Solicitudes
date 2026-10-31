@@ -1,4 +1,5 @@
 ﻿@page "/menu/recursos-revision/busqueda"
+@attribute [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA,CONSULTA")]
 
 @using SolicitudesShared.RecursosRevision
 @using System.Net.Http.Json
@@ -7,10 +8,12 @@
 @using ClosedXML.Excel
 @using System.IO
 @using Microsoft.Extensions.Logging
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject ILogger<RecursoRevisionBusqueda> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 
 <PageTitle>Búsqueda de Expedientes - Recursos de Revisión</PageTitle>
@@ -31,10 +34,13 @@
             </button>            
             
             <!-- BOTÓN NUEVO EXPEDIENTE -->
-            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition"
-                    @onclick="IrACapturaNuevo">
-                + Nuevo Expediente
-            </button>
+            @if (!EsSoloConsulta)
+            {
+                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition"
+                        @onclick="IrACapturaNuevo">
+                    + Nuevo Expediente
+                </button>
+            }
         </div>
     </div>
 
@@ -229,11 +235,14 @@
                                         </button>
 
                                         <!-- BOTÓN ELIMINAR -->
-                                        <button class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded transition"
-                                                title="Eliminar expediente"
-                                                @onclick="() => EliminarExpedienteDesdeBusqueda(exp)">
-                                            Eliminar
-                                        </button>
+                                        @if (EsAdministrador)
+                                        {
+                                            <button class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded transition"
+                                                    title="Eliminar expediente"
+                                                    @onclick="() => EliminarExpedienteDesdeBusqueda(exp)">
+                                                Eliminar
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -253,12 +262,17 @@
     private int limiteRegistros = 10;
 
     private bool buscando = false;
+    private bool EsSoloConsulta;
+    private bool EsAdministrador;
 
     private List<ExpedienteRevisionDTO> resultados = new();
     private CancellationTokenSource? cts;
 
     protected override async Task OnInitializedAsync()
     {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        EsSoloConsulta = authenticationState.User.IsInRole("CONSULTA");
+        EsAdministrador = authenticationState.User.IsInRole("ADMINISTRADOR");
         await EjecutarBusquedaAPI();
     }
 

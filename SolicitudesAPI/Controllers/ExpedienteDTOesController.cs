@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SolicitudesAPI.Models;
 using SolicitudesShared;
@@ -10,6 +11,7 @@ namespace SolicitudesAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ExpedientesController : ControllerBase
     {
         private readonly SistemaSolicitudesContext _context;
@@ -84,6 +86,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpPost("Crear")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
         public async Task<ActionResult> Crear(ExpedienteDTO expediente)
         {
             var responseApi = new ResponseAPI<int>();
@@ -144,6 +147,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpPut("Actualizar/{id}")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
         public async Task<IActionResult> Actualizar(int id, [FromBody] ExpedienteDTO expediente)
         {
             if (id != expediente.Id) return BadRequest("ID mismatch");
@@ -201,6 +205,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpDelete("Eliminar/{id}")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> Eliminar(int id)
         {
             var responseApi = new ResponseAPI<int>();

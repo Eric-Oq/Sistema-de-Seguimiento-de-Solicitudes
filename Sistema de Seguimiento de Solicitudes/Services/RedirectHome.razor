@@ -15,11 +15,11 @@
 
 		if (user.Identity?.IsAuthenticated ?? false)
 		{
-			Navigation.NavigateTo("/menu");
+			Navigation.NavigateTo("/menu", new NavigationOptions { ReplaceHistoryEntry = true });
 		}
 		else
 		{
-			Navigation.NavigateTo("/login");
+			Navigation.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
 		}
 	}
 }

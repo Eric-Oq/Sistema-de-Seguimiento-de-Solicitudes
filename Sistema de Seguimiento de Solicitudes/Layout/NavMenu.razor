@@ -1,20 +1,20 @@
 ﻿@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavManager
+@inject AuthService AuthService
 
 @attribute [Authorize]
 
-@inject NavigationManager NavManager
-
 <div class="sidebar-header">
-    <a class="brand-logo" href="/menu">
+    <NavLink class="brand-logo" href="/menu">
         <span class="back-icon">
             <i class="bi bi-arrow-left"></i>
         </span>
         <span class="brand-text">Volver al menú</span>
-    </a>
+    </NavLink>
 </div>
 
 <div class="nav-scrollable custom-scrollbar">
@@ -55,7 +55,7 @@
                 </NavLink>
             </div>
 
-            <AuthorizeView Roles="ADMINISTRADOR, Admin">
+            <AuthorizeView Roles="ADMINISTRADOR">
                 <div class="nav-item mt-3">
                     <NavLink class="pro-nav-link danger-link" href="/menu/modulo-solicitudes/eliminar-expedientes">
                         <i class="bi bi-trash3 nav-icon"></i>
@@ -96,6 +96,13 @@
         }
 
     </nav>
+
+    <div class="nav-item px-3 py-3">
+        <button class="pro-nav-link w-100 text-start" @onclick="CerrarSesion">
+            <i class="bi bi-box-arrow-right nav-icon"></i>
+            <span class="nav-text">Cerrar sesión</span>
+        </button>
+    </div>
 </div>
 
 @code {
@@ -105,6 +112,12 @@
     protected override void OnInitialized()
     {
         NavManager.LocationChanged += (s, e) => StateHasChanged();
+    }
+
+    private async Task CerrarSesion()
+    {
+        await AuthService.Logout();
+        NavManager.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
     }
 }
 

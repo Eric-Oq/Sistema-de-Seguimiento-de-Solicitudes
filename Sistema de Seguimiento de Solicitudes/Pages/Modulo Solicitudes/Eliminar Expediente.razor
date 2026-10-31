@@ -1,7 +1,5 @@
 ﻿@page "/menu/modulo-solicitudes/eliminar-expedientes/{id?}"
-@attribute [Authorize]
-
-@*@attribute [Authorize(Roles = "ADMINISTRADOR")]*@
+@attribute [Authorize(Roles = "ADMINISTRADOR")]
 
 @using Microsoft.AspNetCore.Authorization
 @using SolicitudesShared

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Data.SqlClient;
 using Dapper;
 using SolicitudesAPI;
@@ -16,6 +17,7 @@ namespace SolicitudesAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RecursoRevisionController : ControllerBase
     {
         private readonly IConfiguration _config;
@@ -69,6 +71,7 @@ namespace SolicitudesAPI.Controllers
 
         // 3. GUARDAR NUEVO EXPEDIENTE
         [HttpPost("Expediente")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
         public async Task<IActionResult> GuardarExpediente([FromBody] ExpedienteRevisionDTO m)
         {
             if (string.IsNullOrWhiteSpace(m.NumeroRecurso))
@@ -134,6 +137,7 @@ namespace SolicitudesAPI.Controllers
 
         // 4. ACTUALIZAR EXPEDIENTE EXISTENTE
         [HttpPut("Expediente/Actualizar")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
         public async Task<IActionResult> ActualizarExpediente([FromBody] ExpedienteRevisionDTO m)
         {
             if (m.IdExpediente <= 0)
@@ -253,6 +257,7 @@ namespace SolicitudesAPI.Controllers
 
         //6. SUBIR PDF CON METADATOS
         [HttpPost("Expediente/SubirPDF")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
         public async Task<IActionResult> SubirPDF(
             [FromForm] int idExpediente,
             [FromForm] string tipoDocumento,
@@ -282,7 +287,7 @@ namespace SolicitudesAPI.Controllers
                 Tipo = tipoDocumento ?? "Documento",
                 FechaDoc = fechaDocumento,
                 Descripcion = descripcion ?? string.Empty,
-                Usuario = string.IsNullOrWhiteSpace(usuario) ? "Usuario" : usuario
+                Usuario = User.Identity?.Name ?? "Usuario"
             });
 
             return Ok(new { mensaje = "Documento guardado correctamente" });
@@ -326,6 +331,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpDelete("Expediente/PDF/{idArchivo}")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> EliminarPDF(int idArchivo)
         {
             using var con = GetConnection();
@@ -336,6 +342,7 @@ namespace SolicitudesAPI.Controllers
         }
 
         [HttpDelete("Expediente/{idExpediente}")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> EliminarExpediente(int idExpediente)
         {
             using var con = GetConnection();
@@ -387,6 +394,7 @@ namespace SolicitudesAPI.Controllers
 
         // AGREGAR NUEVA ACTUACIÓN A LA BITÁCORA
         [HttpPost("Expediente/Bitacora")]
+        [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
         public async Task<IActionResult> RegistrarActuacion([FromBody] BitacoraActuacionDTO dto)
         {
             // Solo validamos los campos obligatorios: Expediente, Fecha y Tipo de Actuación

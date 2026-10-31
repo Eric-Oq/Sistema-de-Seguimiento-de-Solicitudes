@@ -12,10 +12,17 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped<JwtAuthorizationMessageHandler>();
+builder.Services.AddScoped(sp =>
+{
+    var handler = sp.GetRequiredService<JwtAuthorizationMessageHandler>();
+    handler.InnerHandler = new HttpClientHandler();
 
-// Configuracion de HttpClient
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7125/") });
+    return new HttpClient(handler)
+    {
+        BaseAddress = new Uri("https://localhost:7125/")
+    };
+});
 
 builder.Services.AddScoped<ICalendarioService, CalendarioService>();
 
@@ -28,10 +35,6 @@ builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider => provider.GetRequiredService<CustomAuthenticationStateProvider>());
 
-builder.Services.AddAuthorizationCore(); // Para Blazor WASM
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
-
-// Add authorization services
 builder.Services.AddAuthorizationCore();
 
 

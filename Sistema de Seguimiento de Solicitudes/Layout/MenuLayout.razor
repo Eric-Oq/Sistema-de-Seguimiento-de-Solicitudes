@@ -41,7 +41,7 @@
     private async Task LogoutClicked()
     {
         await AuthService.Logout();
-        NavigationManager.NavigateTo("/Login");
+        NavigationManager.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
     }
 
     private void IrACrearUsuarios()

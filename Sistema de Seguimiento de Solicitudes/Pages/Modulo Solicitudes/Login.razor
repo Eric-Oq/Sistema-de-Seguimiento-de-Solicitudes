@@ -11,7 +11,6 @@
 @inject AuthService AuthService
 @inject CustomAuthenticationStateProvider CustomAuthStateProvider
 @inject NavigationManager NavigationManager
-@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime js
 
 <div class="auth-layout">
@@ -95,6 +94,9 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
     private bool IsLoading = false;
     private string errorMessage = string.Empty;
 
@@ -103,6 +105,15 @@
         NombreUsuario = string.Empty,
         password = string.Empty
     };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await CustomAuthStateProvider.GetAuthenticationStateAsync();
+        if (authenticationState.User.Identity?.IsAuthenticated == true)
+        {
+            await CustomAuthStateProvider.RemoveToken();
+        }
+    }
 
     private async Task LoginClicked()
     {
@@ -119,7 +130,7 @@
             }
             else
             {
-                NavigationManager.NavigateTo("/menu");
+                NavigationManager.NavigateTo(GetSafeReturnUrl());
             }
         }
         catch (Exception)
@@ -130,6 +141,18 @@
         {
             IsLoading = false;
         }
+    }
+
+    private string GetSafeReturnUrl()
+    {
+        if (string.IsNullOrWhiteSpace(ReturnUrl)
+            || !Uri.TryCreate(new Uri(NavigationManager.BaseUri), ReturnUrl, out var destination)
+            || destination.GetLeftPart(UriPartial.Authority) != new Uri(NavigationManager.BaseUri).GetLeftPart(UriPartial.Authority))
+        {
+            return "/menu";
+        }
+
+        return $"{destination.PathAndQuery}{destination.Fragment}";
     }
 }
 

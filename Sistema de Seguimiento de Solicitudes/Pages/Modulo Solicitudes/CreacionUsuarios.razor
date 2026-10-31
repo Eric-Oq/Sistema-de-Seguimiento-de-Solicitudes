@@ -4,6 +4,7 @@
 @attribute [Authorize(Roles = "ADMINISTRADOR, SUPERVISIÓN")]
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using System.ComponentModel.DataAnnotations
 @using System.Collections.Generic
 @using CurrieTechnologies.Razor.SweetAlert2
@@ -13,6 +14,7 @@
 @using MudBlazor
 
 @inject IUsuarioService UsuarioService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SweetAlertService Swal
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
@@ -44,7 +46,7 @@
                     <th style="width: 80px;">ID</th>
                     <th>Nombre de Usuario</th>
                     <th style="text-align: center;">Rol de Acceso</th>
-                    <th style="text-align: center; width: 180px;">Acciones</th>
+                    <th style="text-align: center; width: 180px;">@(EsAdministrador ? "Acciones" : string.Empty)</th>
                 </tr>
             </thead>
             <tbody>
@@ -65,12 +67,15 @@
                             </td>
                             <td style="text-align: center;">
                                 <div class="actions-wrapper">
-                                    <button class="btn-action-outline" @onclick="() => AbrirModalCambioContrasena(usuario)" title="Cambiar Contraseña">
-                                        <MudIcon Icon="@Icons.Material.Filled.LockReset" Style="width: 18px; height: 18px; flex-shrink: 0;" />
-                                    </button>
-                                    <button class="btn-action-danger" @onclick="() => Eliminar(usuario.Id)" title="Eliminar Usuario">
-                                        <MudIcon Icon="@Icons.Material.Filled.DeleteOutline" Style="width: 18px; height: 18px; flex-shrink: 0;" />
-                                    </button>
+                                    @if (EsAdministrador)
+                                    {
+                                        <button class="btn-action-outline" @onclick="() => AbrirModalCambioContrasena(usuario)" title="Cambiar Contraseña">
+                                            <MudIcon Icon="@Icons.Material.Filled.LockReset" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                                        </button>
+                                        <button class="btn-action-danger" @onclick="() => Eliminar(usuario.Id)" title="Eliminar Usuario">
+                                            <MudIcon Icon="@Icons.Material.Filled.DeleteOutline" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                                        </button>
+                                    }
                                 </div>
                             </td>
                         </tr>
@@ -194,6 +199,7 @@
 
     private bool MostrarFormularioModal = false;
     private bool MostrarModalCambioContrasena = false;
+    private bool EsAdministrador;
     private UsuariosDTO UsuarioCambioContrasena = null!;
     private CambioContrasenaModelClass CambioContrasenaModel = new();
     private bool _mostrarPassword = false;
@@ -235,6 +241,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        EsAdministrador = authenticationState.User.IsInRole("ADMINISTRADOR");
         ListaUsuarios = await UsuarioService.Lista_Usuarios();
         UsuariosFiltrados = new List<UsuariosDTO>(ListaUsuarios.OrderByDescending(e => e.Id));
     }
@@ -327,7 +335,9 @@
         { "ADMINISTRADOR", "Adicional a los derechos de CAPTURA, tiene el control de catálogos, accesos y usuarios." }
     };
 
-    private List<string> ListaRoles => RolesDescripcion.Keys.ToList();
+    private List<string> ListaRoles => RolesDescripcion.Keys
+        .Where(role => EsAdministrador || role != "ADMINISTRADOR")
+        .ToList();
 
     private string DescripcionRolSeleccionado =>
         NuevoUsuario?.Rol != null && RolesDescripcion.ContainsKey(NuevoUsuario.Rol)

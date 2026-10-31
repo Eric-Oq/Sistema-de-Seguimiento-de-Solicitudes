@@ -1,6 +1,6 @@
 ﻿@page "/menu/modulo-solicitudes/indice-expedientes/detalles/{id:int}/{folio}"
 
-@attribute [Authorize]
+@attribute [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA,CONSULTA")]
 
 @using Microsoft.AspNetCore.Authorization
 @using Sistema_de_Seguimiento_de_Solicitudes.Models

@@ -2,7 +2,7 @@
 @using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
 
 @inherits LayoutComponentBase
-@implements IDisposable
+@implements IAsyncDisposable
 
 @inject NavigationManager NavigationManager
 @inject AuthService AuthService
@@ -48,12 +48,14 @@
     [JSInvokable]
     public async Task CerrarSesionAuto()
     {
+        await JS.InvokeVoidAsync("stopInactivityWatcher");
         await CustomAuthStateProvider.RemoveToken();
-        NavigationManager.NavigateTo("/login");
+        NavigationManager.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         objRef?.Dispose();
+        await JS.InvokeVoidAsync("stopInactivityWatcher");
     }
 }

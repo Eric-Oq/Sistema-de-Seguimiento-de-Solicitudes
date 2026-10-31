@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Sistema_de_Seguimiento_de_Solicitudes.Models;
 using SolicitudesAPI.Models;
@@ -7,6 +8,7 @@ using System.Collections.Generic;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class CalendarioController : ControllerBase
 {
     private readonly SistemaSolicitudesContext _context;
@@ -31,6 +33,7 @@ public class CalendarioController : ControllerBase
     }
 
     [HttpPost("Guardar_dia")]
+    [Authorize(Roles = "ADMINISTRADOR")]
     public async Task<ActionResult> Guardar(List<CalendarioDTO> diasActivos)
     {
         var responseApi = new ResponseAPI<List<CalendarioDTO>>();
@@ -84,6 +87,7 @@ public class CalendarioController : ControllerBase
 
     // guardar dia uno por uno
     [HttpPost ("Guardar_DiasInhabiles")]
+    [Authorize(Roles = "ADMINISTRADOR")]
     public async Task<IActionResult> Guardar_DiaInhabil([FromBody] DiaInhabilManualDTO diaInhabil)
     {
         //fecha = fecha.Date;
@@ -107,6 +111,7 @@ public class CalendarioController : ControllerBase
     }
         
     [HttpDelete("Eliminar_DiaInhabil/{fecha}")]
+    [Authorize(Roles = "ADMINISTRADOR")]
     public async Task<IActionResult> Eliminar_DiaInhabil(DateTime fecha)
     {
         var fechaNormalizada = fecha.Date;
