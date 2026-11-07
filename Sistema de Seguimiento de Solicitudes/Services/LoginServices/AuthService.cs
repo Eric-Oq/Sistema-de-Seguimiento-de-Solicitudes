@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using System.Net.Http;
+using System.Net;
 using System.Text.Json;
 using SolicitudesShared;
 
@@ -26,13 +27,12 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
 
             var response = await _http.PostAsJsonAsync("/api/Auth/login", model );
 
-            //if (!response.IsSuccessStatusCode)
-            if (!response.IsSuccessStatusCode)
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Login failed: {errorContent}");
+                return new LoginResponse { Flag = false, Message = "Usuario o contraseña incorrectos." };
             }
 
+            response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
             if (result is null)

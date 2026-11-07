@@ -1,4 +1,5 @@
-﻿@page "/login"
+@page "/login"
+<PageTitle>Seguimiento de solicitudes</PageTitle>
 
 @using Microsoft.AspNetCore.Components.Authorization
 @using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
@@ -11,85 +12,209 @@
 @inject AuthService AuthService
 @inject CustomAuthenticationStateProvider CustomAuthStateProvider
 @inject NavigationManager NavigationManager
-@inject IJSRuntime js
+@inject ILogger<Login> Logger
 
-<div class="auth-layout">
-    <!-- 🔥 Fondo animado (Blobs) 🔥 -->
-    <div class="bg-blob blob-1"></div>
-    <div class="bg-blob blob-2"></div>
-
-    <div class="auth-card">
-        
-        <!-- ================= LADO IZQUIERDO: BRANDING ================= -->
-        <div class="auth-brand">
-            <!-- Círculos decorativos animados -->
-            <div class="decor-circle circle-tl"></div>
-            <div class="decor-circle circle-br"></div>
-            
-            <div class="brand-content animate-fade-in">
-                <!-- Contenedor Glassmorphism para el Logo -->
-                <div class="logo-glass-container">
-                    <img src="https://transparencia.pjbc.gob.mx/imagenes/logos/PortalTransparencia.png" alt="Logo Transparencia" />
+<div class="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#4c0d20] px-4 py-6 font-sans">
+    <div class="relative z-10 flex min-h-[550px] w-full max-w-[1000px] flex-col overflow-hidden rounded-[26px] shadow-[0_20px_45px_rgba(20,4,8,0.32)] lg:flex-row">
+        @if (!welcomeDismissed)
+        {
+            <div class="absolute inset-0 z-[60] overflow-hidden @(curtainOpening ? "pointer-events-none" : "")">
+                <svg aria-hidden="true" class="absolute inset-0 h-full w-full" viewBox="0 0 1000 550" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="curtain-base" x1="0" y1="0" x2="1" y2="1">
+                            <stop stop-color="#831d3d" />
+                            <stop offset="0.55" stop-color="#530d25" />
+                            <stop offset="1" stop-color="#2a0613" />
+                        </linearGradient>
+                        <linearGradient id="curtain-fold" x1="0" y1="0" x2="1" y2="1">
+                            <stop stop-color="#a42c4d" />
+                            <stop offset="0.5" stop-color="#6e1734" />
+                            <stop offset="1" stop-color="#39091a" />
+                        </linearGradient>
+                        <linearGradient id="curtain-deep" x1="0" y1="0" x2="1" y2="0.8">
+                            <stop stop-color="#280713" />
+                            <stop offset="0.5" stop-color="#5a1029" />
+                            <stop offset="1" stop-color="#821d3e" />
+                        </linearGradient>
+                        <clipPath id="curtain-left"><rect width="500" height="550" /></clipPath>
+                        <clipPath id="curtain-right"><rect x="500" width="500" height="550" /></clipPath>
+                        <g id="curtain-art">
+                            <rect width="1000" height="550" fill="url(#curtain-base)" />
+                            <path d="M0 0h520C393 67 292 160 273 350 199 284 92 143 50 0Z" fill="url(#curtain-fold)" />
+                            <path d="M280 0h293C400 100 284 225 273 435 196 309 212 118 280 0Z" fill="url(#curtain-deep)" />
+                            <path d="M560 0h340C845 101 733 145 576 194 413 245 319 316 273 435 286 236 389 96 560 0Z" fill="url(#curtain-fold)" />
+                            <path d="M900 0h100v143C921 271 783 306 620 339 454 372 347 402 273 484 301 338 408 247 576 194 733 145 845 101 900 0Z" fill="url(#curtain-deep)" />
+                            <path d="M1000 145v118C899 382 781 417 630 448 492 477 396 511 364 550h-91v-66c74-82 181-112 347-145 163-33 301-68 380-194Z" fill="url(#curtain-fold)" />
+                            <path d="M0 190c75 106 164 203 273 294 45 38 101 60 160 66H0Z" fill="url(#curtain-fold)" />
+                            <path d="M1000 264v286H650c173-57 277-145 350-286Z" fill="url(#curtain-base)" />
+                            <g fill="none" stroke="#e1ae6d" stroke-width="2" opacity="0.8">
+                                <path d="M50 0c42 143 149 284 223 350" />
+                                <path d="M573 0C400 100 284 225 273 435" />
+                                <path d="M900 0C845 101 733 145 576 194 413 245 319 316 273 435" />
+                                <path d="M0 190c75 106 164 203 273 294 45 38 101 60 160 66" />
+                                <path d="M1000 264c-73 141-177 229-350 286" />
+                            </g>
+                        </g>
+                    </defs>
+                    <g class="motion-safe:transition-transform motion-safe:duration-[2000ms] motion-safe:ease-in-out @(curtainOpening ? "-translate-x-full" : "translate-x-0")">
+                        <g clip-path="url(#curtain-left)"><use href="#curtain-art" /></g>
+                    </g>
+                    <g class="motion-safe:transition-transform motion-safe:duration-[2000ms] motion-safe:ease-in-out @(curtainOpening ? "translate-x-full" : "translate-x-0")">
+                        <g clip-path="url(#curtain-right)"><use href="#curtain-art" /></g>
+                    </g>
+                </svg>
+                @if (curtainOpening)
+                {
+                    <svg aria-hidden="true" class="pointer-events-none absolute bottom-0 left-[385px] top-0 hidden h-full w-[130px] overflow-visible motion-safe:lg:block" viewBox="0 0 100 800" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 144.6 0 C 78.1 72.7 22.5 154.5 -17.5 256.4 C -57.5 358.2 -81.9 480 -86.2 632.7" pathLength="1" stroke="#e1ae6d" stroke-width="1.54" stroke-dasharray="1" stroke-dashoffset="1">
+                            <animate attributeName="d" dur="1s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".42 0 .58 1" from="M 144.6 0 C 78.1 72.7 22.5 154.5 -17.5 256.4 C -57.5 358.2 -81.9 480 -86.2 632.7" to="M 50 0 C 78 150 82 260 60 400 C 38 500 12 650 8 800" />
+                            <animate attributeName="stroke-dashoffset" dur="1s" fill="freeze" from="1" to="0" />
+                            <animate attributeName="stroke" dur="1s" fill="freeze" from="#e1ae6d" to="#D6A243" />
+                            <animate attributeName="stroke-width" dur="1s" fill="freeze" from="1.54" to="2.5" />
+                        </path>
+                    </svg>
+                }
+                <div class="absolute inset-0 flex flex-col items-center justify-center px-6 text-center motion-safe:transition-opacity motion-safe:duration-200 @(curtainOpening ? "opacity-0" : "opacity-100")">
+                    <div aria-hidden="true" class="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[#e1ae6d]/70 bg-[#39091a]/60 text-[#e1ae6d] shadow-[0_5px_18px_rgba(20,4,8,0.35)]">
+                        <SvgIcon Name="scales" CssClass="h-8 w-8" />
+                    </div>
+                    <h1 class="text-5xl font-extrabold tracking-tight text-[#e1ae6d] drop-shadow-[0_3px_3px_rgba(20,4,8,0.6)] sm:text-6xl">PJBC</h1>
+                    <p class="mt-2 text-xl font-bold text-white drop-shadow-[0_2px_3px_rgba(20,4,8,0.65)] sm:text-2xl">Portal de <span class="text-[#e1ae6d]">Transparencia</span></p>
+                    <button type="button" class="group relative top-4 mt-8 inline-flex items-center gap-2 rounded-full border-2 border-[#e1ae6d]/80 bg-[#2a0613]/70 px-7 py-2.5 text-sm font-bold text-white shadow-[0_5px_18px_rgba(20,4,8,0.4)] hover:bg-[#741d3d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-not-allowed motion-safe:transition-all motion-safe:duration-300 motion-safe:hover:-translate-y-0.5" @onclick="OpenCurtain" disabled="@curtainOpening">
+                        <span aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_16px_rgba(225,174,109,0.35)] motion-safe:animate-pulse"></span>
+                        <span>Ingresar al <span class="text-[#e1ae6d]">Sistema</span></span>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" aria-hidden="true" Class="motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:translate-x-1 motion-safe:group-focus-visible:translate-x-1" Style="width: 18px; height: 18px; color: #e1ae6d; fill: currentColor;" />
+                    </button>
                 </div>
-                <h2 class="brand-title">Portal de Transparencia</h2>
-                <p class="brand-subtitle">Sistema integral de seguimiento, gestión y transparencia institucional del Poder Judicial.</p>
             </div>
+        }
+
+        <div inert="@(!welcomeDismissed)" aria-hidden="@(!welcomeDismissed ? "true" : "false")" class="relative flex min-h-[300px] flex-1 flex-col justify-between overflow-visible px-8 py-8 text-white sm:min-h-[320px] sm:px-12 sm:py-10 lg:z-10 lg:min-h-[550px] lg:max-w-[450px]">
+            <div aria-hidden="true" class="absolute inset-0 bg-[linear-gradient(150deg,#741d3d_0%,#4a0d21_60%,#1f030b_100%)] lg:-right-[65px]"></div>
+            <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-30 hidden w-[130px] translate-x-1/2 select-none lg:block">
+                <svg aria-hidden="true" class="h-full w-full" viewBox="0 0 100 800" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 50 0 C 78 150 82 260 60 400 C 38 500 12 650 8 800 L 100 800 L 100 0 Z" fill="#fffdfa" />
+                    <path class="@(curtainOpening && !welcomeDismissed ? "motion-safe:opacity-0" : "")" d="M 50 0 C 78 150 82 260 60 400 C 38 500 12 650 8 800" stroke="#D6A243" stroke-width="2.5" />
+                    <path d="M 52 0 C 80 150 84 260 62 400 C 40 500 14 650 10 800" stroke="#ffffff" stroke-width="1" stroke-opacity="0.85" />
+                </svg>
+            </div>
+
+            <div class="relative z-20">
+                <div class="inline-flex w-full max-w-[194px] items-center rounded-lg border border-white/20 bg-white/95 p-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.3)] backdrop-blur-md">
+                    <img class="block h-auto w-full" src="PortalTransparencia.png" alt="Portal de Transparencia" />
+                </div>
+            </div>
+
+            <div aria-hidden="true" class="pointer-events-none absolute bottom-36 left-1/2 z-0 hidden h-[260px] w-[260px] -translate-x-1/2 opacity-80 lg:block">
+                <svg class="h-full w-full drop-shadow-[0_0_4px_#f7bacb]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g stroke="#f9dce5" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M47 18v-5l3-7 3 7v5" />
+                        <path d="M47 18c1-1 5-1 6 0v67c4 0 7 2 9 5 4 0 7 2 8 5H30c1-3 4-5 8-5 2-3 5-5 9-5V18Z" />
+                        <g class="origin-[50px_24px] motion-safe:animate-balance-tilt">
+                            <path d="M47 24c-9-3-17 1-24 4l-7 2c-2 0-3-1-3-2-2 2-1 5 3 6 8 0 15-6 24-8 3-1 5-1 7 0" />
+                            <path d="M53 24c9-3 17 1 24 4l7 2c2 0 3-1 3-2 2 2 1 5-3 6-8 0-15-6-24-8-3-1-5-1-7 0" />
+                            <g class="origin-[17px_34px] motion-safe:animate-balance-pan">
+                                <path d="M17 34 5 68h24L17 34ZM5 68c1 6 5 10 12 10s11-4 12-10" />
+                            </g>
+                            <g class="origin-[83px_34px] motion-safe:animate-balance-pan">
+                                <path d="M83 34 71 68h24L83 34ZM71 68c1 6 5 10 12 10s11-4 12-10" />
+                            </g>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+
+            <div class="relative z-20 mt-auto max-w-[280px] pt-12">
+                <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f2d89b]">Poder Judicial</span>
+                <p class="mt-1 text-xs leading-relaxed text-[#eadde1]">Sistema integral de seguimiento, gestión y transparencia institucional de Baja California.</p>
+            </div>
+
         </div>
 
-        <!-- ================= LADO DERECHO: FORMULARIO ================= -->
-        <div class="auth-form-section">
-            <div class="form-header stagger-1">
-                <h3>Iniciar Sesión</h3>
-                <p>Ingresa tus credenciales para acceder al sistema</p>
+        <div class="relative flex flex-1 flex-col justify-center bg-[#fffdfa] px-8 py-10 pb-28 sm:px-14 sm:py-12 sm:pb-28 lg:flex-[1.05] lg:py-16 lg:pb-28 lg:pl-20 lg:pr-16">
+            <div inert="@(!welcomeDismissed)" aria-hidden="@(!welcomeDismissed ? "true" : "false")" class="relative z-40 mb-8 w-full max-w-[360px] self-center text-center">
+                <div class="mb-3 flex justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.PersonOutline" Class="text-[#84324f]" Style="width: 48px; height: 48px;" />
+                </div>
+                <h3 class="text-3xl font-extrabold tracking-tight text-[#301923]">Iniciar Sesión</h3>
+                <p class="mt-1.5 text-sm text-[#75646a]">Ingresa tus credenciales para acceder al sistema</p>
             </div>
 
-            <EditForm Model="sessionLogin" OnValidSubmit="LoginClicked" class="login-form">
+            <EditForm EditContext="editContext" OnSubmit="SubmitLogin" inert="@(!welcomeDismissed)" aria-hidden="@(!welcomeDismissed ? "true" : "false")" class="relative z-40 flex w-full max-w-[360px] flex-col gap-1 self-center">
                 <DataAnnotationsValidator />
 
-                <!-- Campo de Usuario -->
-                <div class="input-wrapper stagger-2">
-                    <label for="username">Nombre de Usuario</label>
-                    <div class="input-box">
-                        <MudIcon Icon="@Icons.Material.Filled.Person" Class="input-icon" />
-                        <InputText @bind-Value="sessionLogin.NombreUsuario" id="username" class="modern-field" placeholder="Ej. administrador" disabled="@IsLoading" />
+                <div class="flex flex-col gap-2">
+                    <label for="username" class="text-left text-[11px] font-bold uppercase tracking-wider text-[#5f4b52]">Nombre de Usuario</label>
+                    <div class="relative flex items-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Class="absolute left-4 h-5 w-5 text-[#741d3d]" />
+                        <input @ref="usernameInput" @bind="sessionLogin.NombreUsuario" @bind:event="oninput" @bind:after="UsernameChanged" id="username" class="@GetFieldClass(nameof(sessionLogin.NombreUsuario))" aria-invalid="@IsFieldInvalid(nameof(sessionLogin.NombreUsuario)).ToString().ToLowerInvariant()" aria-describedby="username-error" autocomplete="username" disabled="@IsLoading" placeholder="Ej. administrador" />
+                    </div>
+                    <div id="username-error" class="min-h-8 text-xs font-medium leading-4 text-red-700" aria-live="polite">
+                        @if (validationAttempted)
+                        {
+                            @foreach (var message in GetFieldMessages(nameof(sessionLogin.NombreUsuario)))
+                            {
+                                <div>@message</div>
+                            }
+                        }
                     </div>
                 </div>
 
-                <!-- Campo de Contraseña -->
-                <div class="input-wrapper stagger-3">
-                    <label for="password">Contraseña</label>
-                    <div class="input-box">
-                        <MudIcon Icon="@Icons.Material.Filled.Lock" Class="input-icon" />
-                        <input type="password" @bind="sessionLogin.password" id="password" class="modern-field" placeholder="••••••••" disabled="@IsLoading" />
+                <div class="flex flex-col gap-2">
+                    <label for="password" class="text-left text-[11px] font-bold uppercase tracking-wider text-[#5f4b52]">Contraseña</label>
+                    <div class="relative flex items-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" Class="absolute left-4 h-[18px] w-[18px] text-[#741d3d]" />
+                        <input type="password" @bind="sessionLogin.password" @bind:event="oninput" @bind:after="PasswordChanged" id="password" class="@GetFieldClass(nameof(sessionLogin.password))" aria-invalid="@IsFieldInvalid(nameof(sessionLogin.password)).ToString().ToLowerInvariant()" aria-describedby="password-error" autocomplete="current-password" placeholder="••••••••" disabled="@IsLoading" />
+                    </div>
+                    <div id="password-error" class="min-h-8 text-xs font-medium leading-4 text-red-700" aria-live="polite">
+                        @if (validationAttempted)
+                        {
+                            @foreach (var message in GetFieldMessages(nameof(sessionLogin.password)))
+                            {
+                                <div>@message</div>
+                            }
+                        }
                     </div>
                 </div>
 
-                <!-- Alerta de Error -->
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <div class="error-alert stagger-4">
-                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Style="width: 20px; height: 20px;" />
-                        <span>@errorMessage</span>
+                    <div class="absolute left-1/2 top-full z-50 mt-4 w-full max-w-[280px] -translate-x-1/2">
+                        <div role="alert" class="flex items-center gap-3 rounded-xl border border-[#fe0000] bg-[#fe0000]/20 px-3 py-1.5 text-red-900 shadow-[0_0_0_1px_rgba(254,0,0,0.25),0_0_14px_rgba(254,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.55)] motion-safe:animate-login-alert-bounce">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#fe0000]/20 text-red-800">
+                                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" aria-hidden="true" Style="width: 20px; height: 20px;" />
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-bold uppercase">Error de acceso</p>
+                                <p class="text-xs leading-4">@errorMessage</p>
+                            </div>
+                        </div>
                     </div>
                 }
 
-                <!-- Botón Submit -->
-                <div class="stagger-5">
-                    <button type="submit" class="btn-submit" disabled="@IsLoading">
-                        @if (IsLoading)
-                        {
-                            <span>Autenticando...</span>
-                        }
-                        else
-                        {
-                            <span>Ingresar al Sistema</span>
-                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Class="btn-icon" />
-                        }
-                    </button>
-                </div>
+                <span class="sr-only" role="status" aria-live="polite">@(IsLoading ? "Autenticando..." : loginFailed ? "Intenta de nuevo." : "")</span>
+                <button type="submit" class="relative mt-2 flex h-[44px] max-w-full self-center items-center justify-center overflow-hidden text-sm font-bold tracking-wide text-white transition-[width,background-color,border-radius] duration-300 disabled:cursor-not-allowed @(IsLoading ? "w-[44px] rounded-full border-0 bg-transparent" : loginFailed && showFailureIcon ? "w-[44px] rounded-full border-0 bg-[#ed4054] shadow-[0_0_20px_rgba(237,64,84,0.5)] motion-safe:animate-login-error-shake" : loginFailed ? "w-[220px] rounded-full border-0 bg-[#ed4054] shadow-[0_0_20px_rgba(237,64,84,0.4)]" : "w-[220px] rounded-xl border-0 bg-[linear-gradient(135deg,#741d3d_0%,#5a122a_55%,#3c0717_100%)] shadow-[0_8px_16px_-4px_rgba(116,29,61,0.36)] hover:-translate-y-[2px] hover:shadow-[0_12px_22px_-4px_rgba(116,29,61,0.42)] active:translate-y-0 active:scale-[0.98]")" disabled="@(IsLoading || loginFailed)">
+                    @if (IsLoading)
+                    {
+                        <span aria-hidden="true" class="h-[44px] w-[44px] flex-none rounded-full border-[3px] border-[#eadde1] border-t-[#741d3d] motion-safe:animate-spin"></span>
+                        <span class="sr-only">Autenticando...</span>
+                    }
+                    else if (loginFailed && showFailureIcon)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Close" aria-hidden="true" Style="width: 28px; height: 28px;" />
+                        <span class="sr-only">Error al iniciar sesión</span>
+                    }
+                    else if (loginFailed)
+                    {
+                        <span>Intenta de nuevo</span>
+                    }
+                    else
+                    {
+                        <span>Ingresar al Sistema</span>
+                    }
+                </button>
             </EditForm>
         </div>
-
     </div>
 </div>
 
@@ -98,7 +223,15 @@
     public string? ReturnUrl { get; set; }
 
     private bool IsLoading = false;
+    private bool welcomeDismissed;
+    private bool curtainOpening;
+    private bool focusUsername;
+    private ElementReference usernameInput;
+    private bool loginFailed;
+    private bool showFailureIcon;
     private string errorMessage = string.Empty;
+    private bool validationAttempted;
+    private EditContext editContext = default!;
 
     private LoginDTO sessionLogin { get; set; } = new LoginDTO
     {
@@ -106,12 +239,85 @@
         password = string.Empty
     };
 
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(sessionLogin);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authenticationState = await CustomAuthStateProvider.GetAuthenticationStateAsync();
         if (authenticationState.User.Identity?.IsAuthenticated == true)
         {
             await CustomAuthStateProvider.RemoveToken();
+        }
+    }
+
+    private async Task OpenCurtain()
+    {
+        if (curtainOpening)
+        {
+            return;
+        }
+
+        curtainOpening = true;
+        await Task.Delay(TimeSpan.FromMilliseconds(2000));
+        welcomeDismissed = true;
+        focusUsername = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusUsername)
+        {
+            focusUsername = false;
+            await usernameInput.FocusAsync();
+        }
+    }
+
+    private IEnumerable<string> GetFieldMessages(string fieldName) =>
+        editContext.GetValidationMessages(new FieldIdentifier(sessionLogin, fieldName));
+
+    private bool IsFieldInvalid(string fieldName) =>
+        validationAttempted && GetFieldMessages(fieldName).Any();
+
+    private string GetFieldClass(string fieldName)
+    {
+        const string common = "w-full rounded-xl border py-2.5 pl-11 pr-4 text-sm font-medium text-[#2d121b] shadow-[inset_0_1px_2px_rgba(54,18,33,0.02)] transition duration-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:opacity-70";
+        if (!validationAttempted)
+        {
+            return $"{common} border-[#e8dfe2] bg-white hover:border-[#bda6ae] focus:border-[#741d3d] focus:ring-[rgba(116,29,61,0.14)]";
+        }
+
+        return IsFieldInvalid(fieldName)
+            ? $"{common} border-red-500 bg-red-50 ring-2 ring-red-200 focus:border-red-500 focus:ring-red-200"
+            : $"{common} border-green-600 bg-green-50 ring-2 ring-green-200 focus:border-green-600 focus:ring-green-200";
+    }
+
+    private void UsernameChanged() => NotifyFieldChanged(nameof(sessionLogin.NombreUsuario));
+
+    private void PasswordChanged() => NotifyFieldChanged(nameof(sessionLogin.password));
+
+    private void NotifyFieldChanged(string fieldName)
+    {
+        if (validationAttempted)
+        {
+            editContext.NotifyFieldChanged(new FieldIdentifier(sessionLogin, fieldName));
+        }
+    }
+
+    private async Task SubmitLogin()
+    {
+        if (IsLoading || loginFailed)
+        {
+            return;
+        }
+
+        validationAttempted = true;
+        errorMessage = string.Empty;
+        if (editContext.Validate())
+        {
+            await LoginClicked();
         }
     }
 
@@ -126,21 +332,32 @@
 
             if (!response.Flag)
             {
-                await js.InvokeVoidAsync("alerta", response.Message ?? "Error desconocido al intentar iniciar sesión.");
+                errorMessage = string.IsNullOrWhiteSpace(response.Message)
+                    ? "No fue posible iniciar sesión. Intenta de nuevo."
+                    : response.Message;
             }
             else
             {
                 NavigationManager.NavigateTo(GetSafeReturnUrl());
+                return;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            errorMessage = "Credenciales incorrectas o problema de conexión.";
+            Logger.LogError(ex, "Error al intentar iniciar sesión.");
+            errorMessage = "No fue posible iniciar sesión. Revisa tu conexión o intenta más tarde.";
         }
-        finally
-        {
-            IsLoading = false;
-        }
+
+        IsLoading = false;
+        loginFailed = true;
+        showFailureIcon = true;
+        StateHasChanged();
+        await Task.Delay(TimeSpan.FromMilliseconds(700));
+        showFailureIcon = false;
+        StateHasChanged();
+        await Task.Delay(TimeSpan.FromMilliseconds(1300));
+        loginFailed = false;
+        errorMessage = string.Empty;
     }
 
     private string GetSafeReturnUrl()
@@ -155,401 +372,3 @@
         return $"{destination.PathAndQuery}{destination.Fragment}";
     }
 }
-
-<style>
-    /* ================= RESET Y CONTENEDOR PRINCIPAL ================= */
-    .auth-layout {
-        position: relative;
-        min-height: 100vh;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: #f8fafc;
-        background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-        background-size: 30px 30px;
-        padding: 20px;
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        overflow: hidden;
-    }
-
-    /* 🔥 BLOBS ANIMADOS DE FONDO 🔥 */
-    .bg-blob {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(80px);
-        opacity: 0.4;
-        z-index: 0;
-        animation: floatBlob 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .blob-1 {
-        width: 500px;
-        height: 500px;
-        background: #3b82f6;
-        top: -10%;
-        left: -10%;
-    }
-
-    .blob-2 {
-        width: 400px;
-        height: 400px;
-        background: #8b5cf6;
-        bottom: -10%;
-        right: -5%;
-        animation-delay: -5s;
-    }
-
-    /* ================= LA TARJETA PRINCIPAL ================= */
-    .auth-card {
-        position: relative;
-        z-index: 10;
-        display: flex;
-        width: 100%;
-        max-width: 1000px;
-        min-height: 550px;
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 28px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-        backdrop-filter: blur(20px);
-        overflow: hidden;
-        /* Animación de entrada de la tarjeta */
-        opacity: 0;
-        transform: translateY(30px);
-        animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    /* ================= PANEL IZQUIERDO (BRANDING) ================= */
-    .auth-brand {
-        flex: 1;
-        background: linear-gradient(145deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-        padding: 4rem 3rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
-        color: white;
-    }
-
-    .brand-content {
-        position: relative;
-        z-index: 10;
-        max-width: 400px;
-    }
-
-    /* 🔥 LOGO GLASSMORPHISM 🔥 */
-    .logo-glass-container {
-        background: rgba(255, 255, 255, 0.85);
-        padding: 1.5rem;
-        border-radius: 20px;
-        display: inline-block;
-        margin-bottom: 2.5rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 1);
-        backdrop-filter: blur(10px);
-        transition: transform 0.3s ease;
-    }
-
-    .logo-glass-container:hover {
-        transform: translateY(-5px) scale(1.02);
-    }
-
-    .logo-glass-container img {
-        max-width: 220px;
-        display: block;
-    }
-
-    .brand-title {
-        font-size: 2.4rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-        line-height: 1.1;
-        background: linear-gradient(to right, #ffffff, #94a3b8);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.03em;
-    }
-
-    .brand-subtitle {
-        font-size: 1.1rem;
-        color: #94a3b8;
-        line-height: 1.6;
-        font-weight: 400;
-    }
-
-    /* Círculos decorativos latiendo */
-    .decor-circle {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.02);
-        animation: pulseCircle 8s infinite alternate ease-in-out;
-    }
-
-    .circle-tl {
-        width: 500px;
-        height: 500px;
-        top: -200px;
-        right: -150px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .circle-br {
-        width: 300px;
-        height: 300px;
-        bottom: -100px;
-        left: -100px;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
-        animation-delay: -4s;
-    }
-
-    /* ================= PANEL DERECHO (FORMULARIO) ================= */
-    .auth-form-section {
-        flex: 1.1;
-        padding: 4rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        background: #ffffff;
-    }
-
-    .form-header {
-        margin-bottom: 2.5rem;
-    }
-
-    .form-header h3 {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #0f172a;
-        margin-bottom: 0.5rem;
-        letter-spacing: -0.03em;
-    }
-
-    .form-header p {
-        color: #64748b;
-        font-size: 1.05rem;
-    }
-
-    .login-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-
-    /* ================= INPUTS PREMIUM ================= */
-    .input-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-    }
-
-    .input-wrapper label {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: #475569;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-    }
-
-    .input-box {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-
-    .input-icon {
-        position: absolute;
-        left: 16px;
-        color: #94a3b8;
-        width: 22px;
-        height: 22px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .modern-field {
-        width: 100%;
-        height: 54px;
-        background-color: #f8fafc;
-        border: 2px solid transparent;
-        border-radius: 14px;
-        padding: 0 1rem 0 3.2rem;
-        font-size: 1rem;
-        font-weight: 500;
-        color: #0f172a;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-    }
-
-    /* 🔥 EFECTO GLOW EN FOCUS 🔥 */
-    .modern-field:focus {
-        outline: none;
-        border-color: #3b82f6;
-        background-color: #ffffff;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0,0,0,0.01);
-    }
-
-    .modern-field:hover:not(:focus):not(:disabled) {
-        background-color: #f1f5f9;
-    }
-
-    .modern-field:focus ~ .input-icon,
-    .modern-field:focus + .input-icon {
-        color: #3b82f6;
-        transform: scale(1.1);
-    }
-
-    .modern-field::placeholder {
-        color: #cbd5e1;
-        font-weight: 400;
-    }
-
-    .modern-field:disabled {
-        background-color: #e2e8f0;
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-
-    /* ================= MENSAJE DE ERROR ================= */
-    .error-alert {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 1rem 1.2rem;
-        background-color: #fef2f2;
-        border-left: 4px solid #ef4444;
-        border-radius: 8px;
-        color: #b91c1c;
-        font-size: 0.95rem;
-        font-weight: 600;
-        box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1);
-    }
-
-    /* ================= BOTÓN PREMIUM ================= */
-    .btn-submit {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        width: 100%;
-        height: 56px;
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
-        color: white;
-        border: none;
-        border-radius: 14px;
-        font-size: 1.05rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        /* Sombra del color del botón */
-        box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
-        margin-top: 1rem;
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Efecto de brillo interior */
-    .btn-submit::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(rgba(255,255,255,0.2), transparent);
-        border-radius: 14px;
-    }
-
-    .btn-submit:hover:not(:disabled) {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.5);
-    }
-
-    .btn-submit:active:not(:disabled) {
-        transform: translateY(0);
-        box-shadow: 0 5px 10px -5px rgba(37, 99, 235, 0.4);
-    }
-
-    .btn-submit:disabled {
-        background: #94a3b8;
-        box-shadow: none;
-        cursor: not-allowed;
-    }
-
-    .btn-icon {
-        width: 20px;
-        height: 20px;
-        transition: transform 0.3s ease;
-        position: relative;
-        z-index: 10;
-    }
-
-    .btn-submit:hover:not(:disabled) .btn-icon {
-        transform: translateX(6px);
-    }
-
-    .btn-submit span {
-        position: relative;
-        z-index: 10;
-    }
-
-    /* 🔥 Clases de entrada en Cascada (Stagger) 🔥 */
-    .stagger-1, .stagger-2, .stagger-3, .stagger-4, .stagger-5 {
-        opacity: 0;
-        transform: translateY(20px);
-        animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    .stagger-1 { animation-delay: 0.2s; }
-    .stagger-2 { animation-delay: 0.3s; }
-    .stagger-3 { animation-delay: 0.4s; }
-    .stagger-4 { animation-delay: 0.5s; }
-    .stagger-5 { animation-delay: 0.6s; }
-    
-    .animate-fade-in {
-        opacity: 0;
-        animation: fadeIn 1s ease forwards;
-        animation-delay: 0.3s;
-    }
-
-    @@keyframes slideUpFade {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    @@keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    @@keyframes floatBlob {
-        0% { transform: translate(0, 0) scale(1); }
-        33% { transform: translate(30px, -50px) scale(1.1); }
-        66% { transform: translate(-20px, 20px) scale(0.9); }
-        100% { transform: translate(0, 0) scale(1); }
-    }
-
-    @@keyframes pulseCircle {
-        from { transform: scale(1); opacity: 0.5; }
-        to { transform: scale(1.05); opacity: 1; }
-    }
-
-    /* ================= RESPONSIVIDAD ================= */
-    @@media (max-width: 960px) {
-        .auth-card {
-            flex-direction: column;
-            min-height: auto;
-            border-radius: 20px;
-        }
-
-        .auth-brand {
-            padding: 3rem 2rem;
-            align-items: center;
-            text-align: center;
-        }
-
-        .auth-form-section {
-            padding: 3rem 2rem;
-        }
-
-        .brand-title {
-            font-size: 2rem;
-        }
-    }
-</style>
