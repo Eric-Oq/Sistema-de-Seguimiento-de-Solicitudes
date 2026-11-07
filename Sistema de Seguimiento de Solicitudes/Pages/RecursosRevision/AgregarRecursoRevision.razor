@@ -1,5 +1,6 @@
 ﻿@page "/menu/recursos-revision/registro/agregar"
 @attribute [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
+<PageTitle>Seguimiento de solicitudes</PageTitle>
 
 @using Microsoft.AspNetCore.Authorization
 @using System.Net.Http.Json
@@ -9,62 +10,69 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<h3 class="module-header">Agregar Recurso de Revisión</h3>
-<p class="module-subtitle">Capture la información solicitada:</p>
+<main class="ss-page-resources w-full max-w-none space-y-6 p-4 xl:p-6 motion-safe:motion-preset-fade">
+    <header class="border-b border-slate-200 pb-4">
+        <h1 class="text-2xl font-bold text-brand-800">Agregar recurso de revisión</h1>
+        <p class="mt-1 text-sm text-slate-500">Capture la información del expediente.</p>
+    </header>
 
-<div class="table-responsive mt-4">
-    <table class="table table-bordered" style="width: 100%; text-align:center;">
-        <thead style="background-color:#0d6efd; color:white; font-weight:bold;">
-            <tr>
-                <th>Número de Recurso de Revisión</th>
-                <th>Estatus</th>
-                <th>Resolución en sentido</th>
-                <th>Contenido de la Solicitud</th>
-                <th>Nombre de la Persona Recurrente</th>
-                <th>Sentido de la Contestación</th>
-                <th>Fecha del Acuerdo</th>
-                <th>Contenido del Acuerdo</th>
-            </tr>
-        </thead>
-
-        <tbody style="background-color:#e7f1ff;">
-            <tr>
-                <td><input class="form-control" @bind="Modelo.NumeroRecurso" /></td>
-                <td>
-                    <select class="form-control" @bind="Modelo.Estatus">
-                        <option value="">-- Seleccione --</option>
-                        <option value="En Trámite">En Trámite</option>
-                        <option value="Concluido">Concluido</option>
-                    </select>
-                </td>
-                <td>
-                    <select class="form-select" @bind="Modelo.ResolucionSentido">
-                        <option value="">-- Seleccione --</option>
-                        <option value="Confirma">Confirma</option>
-                        <option value="Sobresee">Sobresee</option>
-                        <option value="Modifica">Modifica</option>
-                        <option value="Revoca">Revoca</option>
-                        <option value="Dar Respuesta">Dar Respuesta</option>
-                    </select>
-                </td>
-
-
-                <td><input class="form-control" @bind="Modelo.ContenidoSolicitud" /></td>
-                <td><input class="form-control" @bind="Modelo.NombreRecurrente" /></td>
-                <td><input class="form-control" @bind="Modelo.SentidoContestacion" /></td>
-                <td>
-                    <input type="date"
-                           class="form-control"
-                           @bind="Modelo.FechaAcuerdo"
-                           @bind:format="yyyy-MM-dd" />
-                </td>
-                <td><input class="form-control" @bind="Modelo.ContenidoAcuerdo" /></td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
-<button class="btn btn-primary mt-3" @onclick="Guardar">Guardar</button>
+    <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Número de Recurso de Revisión</label>
+                <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @bind="Modelo.NumeroRecurso" />
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Estatus</label>
+                <select class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @bind="Modelo.Estatus">
+                    <option value="">-- Seleccione --</option>
+                    <option value="En Trámite">En Trámite</option>
+                    <option value="Concluido">Concluido</option>
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Resolución en sentido</label>
+                <select class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @bind="Modelo.ResolucionSentido">
+                    <option value="">-- Seleccione --</option>
+                    <option value="Confirma">Confirma</option>
+                    <option value="Sobresee">Sobresee</option>
+                    <option value="Modifica">Modifica</option>
+                    <option value="Revoca">Revoca</option>
+                    <option value="Dar Respuesta">Dar Respuesta</option>
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Nombre de la Persona Recurrente</label>
+                <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @bind="Modelo.NombreRecurrente" />
+            </div>
+            <div class="md:col-span-2">
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Contenido de la Solicitud</label>
+                <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @bind="Modelo.ContenidoSolicitud" />
+            </div>
+            <div class="md:col-span-2">
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Sentido de la Contestación</label>
+                <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @bind="Modelo.SentidoContestacion" />
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Fecha del Acuerdo</label>
+                <input type="date"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                       @bind="Modelo.FechaAcuerdo"
+                       @bind:format="yyyy-MM-dd" />
+            </div>
+            <div class="md:col-span-3">
+                <label class="mb-1 block text-xs font-semibold text-slate-600">Contenido del Acuerdo</label>
+                <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" @bind="Modelo.ContenidoAcuerdo" />
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end border-t border-slate-100 pt-4">
+            <button class="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                    @onclick="Guardar">
+                Guardar
+            </button>
+        </div>
+    </section>
+</main>
 
 @code {
     private RecursoRevisionDTO Modelo = new RecursoRevisionDTO();

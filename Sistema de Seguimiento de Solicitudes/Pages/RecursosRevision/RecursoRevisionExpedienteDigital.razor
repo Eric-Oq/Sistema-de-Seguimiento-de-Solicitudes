@@ -12,13 +12,13 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Expediente Digital - Recursos de Revisión</PageTitle>
+<PageTitle>Seguimiento de solicitudes</PageTitle>
 
 <!-- BLOQUEO DE NAVEGACIÓN (Punto 2) -->
 <NavigationLock ConfirmExternalNavigation="@HayCambios"
                 OnBeforeInternalNavigation="ConfirmarNavegacionInterna" />
 
-<div class="p-6 max-w-7xl mx-auto space-y-6">
+<div class="ss-page-resources w-full max-w-none space-y-6 p-4 xl:p-6 motion-safe:motion-preset-fade">
 
     <!-- ENCABEZADO Y ACCIONES PRINCIPALES -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-4">
@@ -34,7 +34,7 @@
                     @(modelo.IdExpediente == 0 ? "Limpiar Captura" : "Cancelar Edición")
                 </button>
                 <button class="px-4 py-2 text-sm font-semibold rounded-lg shadow transition
-                    @(modelo.IdExpediente > 0 && !HayCambios ? "bg-slate-200 text-slate-500 hover:bg-slate-300 cursor-default" : "bg-indigo-600 text-white hover:bg-indigo-700")"
+                    @(modelo.IdExpediente > 0 && !HayCambios ? "bg-slate-200 text-slate-500 hover:bg-slate-300 cursor-default" : "bg-brand-600 text-white hover:bg-brand-700")"
                         @onclick="GuardarOActualizar">
                     @(modelo.IdExpediente == 0 ? "Guardar Expediente" : (HayCambios ? "Actualizar Cambios" : "Sin cambios realizados"))
                 </button>
@@ -54,8 +54,8 @@
                                                      tipoAlerta == "info" ? "bg-blue-50 text-blue-800 border border-blue-200" :
                                                      "bg-rose-50 text-rose-800 border border-rose-200")">
         <span>@mensajeAlerta</span>
-        <button type="button" class="font-bold text-base leading-none text-slate-400 hover:text-slate-700 ml-3 transition cursor-pointer" @onclick="CerrarAlerta">
-            ✕
+        <button type="button" class="ml-3 text-slate-400 hover:text-slate-700 transition cursor-pointer" aria-label="Cerrar alerta" @onclick="CerrarAlerta">
+            <SvgIcon Name="close" CssClass="h-4 w-4" />
         </button>
     </div>
         }
@@ -68,7 +68,7 @@
             </span>
             @if (modelo.IdExpediente > 0)
             {
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-100 text-brand-700">
                     Modo Edición
                 </span>
             }
@@ -79,21 +79,21 @@
 
             <!-- BLOQUE A: DATOS GENERALES -->
             <div>
-                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque A: Datos Generales</h3>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-brand-600 mb-3">Bloque A: Datos Generales</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Número de Recurso *</label>
-                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                placeholder="Ej. RR/0001/2026" @bind="modelo.NumeroRecurso" @bind:event="oninput"/>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Folio Solicitud *</label>
-                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                placeholder="Ej. 123456" @bind="modelo.FolioSolicitud" @bind:event="oninput" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Materia</label>
-                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                 @bind="modelo.MateriaRecurso" @bind:event="oninput">
                             <option value="">-- Seleccionar --</option>
                             <option value="DAI">Acceso a la Información (DAI)</option>
@@ -102,7 +102,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Estatus Actual *</label>
-                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                 @bind="modelo.Estatus" @bind:event="oninput">
                             <option value="">-- Seleccionar --</option>
                             <option value="Admitido">Admitido</option>
@@ -112,17 +112,17 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre de la Persona Recurrente</label>
-                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                placeholder="Nombre completo" @bind="modelo.NombreRecurrente" @bind:event="oninput" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha de Presentación del Recurso</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaPresentacion" @bind:event="oninput" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Responsable Interno</label>
-                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                placeholder="Usuario asignado" @bind="modelo.ResponsableInterno" @bind:event="oninput" />
                     </div>
                 </div>
@@ -130,26 +130,26 @@
 
             <!-- BLOQUE B: SOLICITUD ORIGINAL -->
             <div class="border-t border-slate-100 pt-5">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque B: Solicitud Original</h3>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-brand-600 mb-3">Bloque B: Solicitud Original</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Contenido de la Solicitud</label>
-                        <textarea rows="3" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <textarea rows="3" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                   placeholder="Texto de la solicitud original..." @bind="modelo.ContenidoSolicitud" @bind:event="oninput"></textarea>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Respuesta Otorgada</label>
-                        <textarea rows="3" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <textarea rows="3" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                   placeholder="Respuesta original de la unidad administrativa..." @bind="modelo.RespuestaOtorgada" @bind:event="oninput"></textarea>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Razón de Interposición</label>
-                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                placeholder="Ej. Negativa de información / Incompetencia" @bind="modelo.RazonInterposicion" @bind:event="oninput" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Respuesta a Solicitud</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaRespuestaSolicitud" @bind:event="oninput" />
                     </div>
                 </div>
@@ -157,53 +157,53 @@
 
             <!-- BLOQUE C: TRÁMITE DEL RECURSO -->
             <div class="border-t border-slate-100 pt-5">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque C: Trámite del Recurso</h3>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-brand-600 mb-3">Bloque C: Trámite del Recurso</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Admisión</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaAdmision" @bind:event="oninput"/>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Notif. Admisión</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaNotificacionAdmision" @bind:event="oninput" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Límite Contestación</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaLimiteContestacion" @bind:event="oninput" />
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Contestación</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaContestacionRecurso" @bind:event="oninput" />
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Sentido Contestación</label>
-                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="text" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                placeholder="Detalles sobre el sentido emitido..." @bind="modelo.SentidoContestacion" @bind:event="oninput" />
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Cierre Instrucción</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaCierreInstruccion" @bind:event="oninput" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Resolución</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaResolucion" @bind:event="oninput" />
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Notif. Resolución</label>
-                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                @bind="modelo.FechaNotificacionResolucion" @bind:event="oninput" />
                     </div>
                     <div class="md:col-span-3">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Sentido Resolución</label>
-                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                        <select class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                 @bind="modelo.SentidoResolucion" @bind:event="oninput">
                             <option value="">-- Seleccionar --</option>
                             <option value="Confirma">Confirma</option>
@@ -217,10 +217,10 @@
 
             <!-- BLOQUE D: CUMPLIMIENTO -->
             <div class="border-t border-slate-100 pt-5">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 mb-3">Bloque D: Cumplimiento</h3>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-brand-600 mb-3">Bloque D: Cumplimiento</h3>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="flex items-center gap-2 pb-3">
-                        <input type="checkbox" id="chkCumplimiento" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                        <input type="checkbox" id="chkCumplimiento" class="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
                                @bind="modelo.RequiereCumplimiento" @bind:event="oninput" />
                         <label for="chkCumplimiento" class="text-xs font-semibold text-slate-700">¿Requiere Cumplimiento?</label>
                     </div>
@@ -230,17 +230,17 @@
                     {
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha Límite Cumpl.</label>
-                            <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                            <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                    @bind="modelo.FechaLimiteCumplimiento" @bind:event="oninput" />
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha que Cumplió</label>
-                            <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                            <input type="date" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                    @bind="modelo.FechaCumplio" @bind:event="oninput" />
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">¿Cumplió Resolución?</label>
-                            <select class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                            <select class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                     @bind="modelo.CumplioResolucion" @bind:event="oninput">
                                 <option value="">-- --</option>
                                 <option value="Sí">Sí</option>
@@ -250,14 +250,14 @@
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Acuerdo de Cumplimiento / Incumplimiento</label>
-                            <textarea rows="2" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                            <textarea rows="2" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                       placeholder="Detalles del acuerdo..." @bind="modelo.AcuerdoCumplimiento" @bind:event="oninput"></textarea>
                         </div>
                     }
 
                     <div class="md:col-span-4">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Observaciones</label>
-                        <textarea rows="2" class="w-full text-sm rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border"
+                        <textarea rows="2" class="w-full text-sm rounded-lg border-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border"
                                   placeholder="Anotaciones adicionales del expediente..." @bind="modelo.Observaciones" @bind:event="oninput"></textarea>
                     </div>
                 </div>
@@ -275,7 +275,7 @@
                         <p class="text-xs text-slate-500">Expediente digital y constancias asociadas</p>
                     </div>
                     <div>
-                        <span class="text-xs font-bold px-2.5 py-1 rounded border @(modelo.IdExpediente == 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-indigo-50 text-indigo-700 border-indigo-200")">
+                        <span class="text-xs font-bold px-2.5 py-1 rounded border @(modelo.IdExpediente == 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-brand-50 text-brand-700 border-brand-200")">
                             RECURSO: @(string.IsNullOrWhiteSpace(modelo.NumeroRecurso) ? "Sin guardar" : modelo.NumeroRecurso)
                         </span>
                     </div>
@@ -286,7 +286,7 @@
                     <!-- MENSAJE DE APARTADO BLOQUEADO -->
                     <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800">
                         <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-xl shrink-0">
-                            🔒
+                            <SvgIcon Name="lock" CssClass="h-5 w-5 text-amber-700" />
                         </div>
                         <div>
                             <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900">Apartado Bloqueado</h4>
@@ -306,7 +306,7 @@
                             <div>
                                 <!-- TIPO DE DOCUMENTO -->
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de documento: <span class="text-rose-500">*</span> </label>                            
-                                <select class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                <select class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                         @bind="nuevoDocTipo">
                                     <option value="Recurso de revisión">Recurso de revisión</option>
                                     <option value="Acuerdo de admisión">Acuerdo de admisión</option>
@@ -319,25 +319,25 @@
                             <div>
                                 <!-- FECHA DEL DOCUMENTO -->
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha del documento: <span class="text-rose-500">*</span></label>                            
-                                <input type="date" class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                <input type="date" class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                        @bind="nuevoDocFecha" />
                             </div>
                             <!-- CAMPO USUARIO -->
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Usuario responsable: <span class="text-rose-500">*</span></label>
-                                <input type="text" class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-slate-100"
+                                <input type="text" class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-slate-100"
                                        @bind="nuevoDocUsuario" readonly />
                             </div>
                             <!-- ARCHIVO PDF -->
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Archivo PDF: <span class="text-rose-500">*</span></label>
                                 <InputFile @key="inputFileKey" OnChange="OnArchivoSeleccionado" accept="application/pdf"
-                                           class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg bg-white" />
+                                           class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 border border-slate-300 rounded-lg bg-white" />
                             </div>
                             <!-- DESCRIPCIÓN -->
                             <div class="md:col-span-3">
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción:</label>
-                                <input type="text" class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                <input type="text" class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                        placeholder="Ej. Acuerdo por el que se admite el recurso..."
                                        @bind="nuevoDocDescripcion" />
                             </div>
@@ -388,19 +388,22 @@
                                 {
                                     <tr class="hover:bg-slate-50 transition">
                                         <td class="px-4 py-2.5 font-medium text-slate-900">@doc.TipoDocumento</td>
-                                        <td class="px-4 py-2.5 text-indigo-600 truncate max-w-[200px]" title="@doc.NombreArchivo">
-                                            📄 @doc.NombreArchivo
+                                        <td class="px-4 py-2.5 text-brand-600 truncate max-w-[200px]" title="@doc.NombreArchivo">
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <SvgIcon Name="file" CssClass="h-4 w-4 shrink-0" />
+                                                <span class="truncate">@doc.NombreArchivo</span>
+                                            </span>
                                         </td>
                                         <td class="px-4 py-2.5 whitespace-nowrap">@doc.FechaDocumento.ToString("dd/MM/yyyy")</td>
                                         <td class="px-4 py-2.5 text-slate-600">@doc.Usuario</td>
                                         <td class="px-4 py-2.5 text-center whitespace-nowrap">
-                                            <div class="inline-flex items-center gap-2 text-indigo-600 font-semibold">
-                                                <button type="button" class="hover:underline hover:text-indigo-800"
+                                            <div class="inline-flex items-center gap-2 text-brand-600 font-semibold">
+                                                <button type="button" class="hover:underline hover:text-brand-800"
                                                         @onclick="() => VerPDF(doc.IdArchivo)">
                                                     Ver
                                                 </button>
                                                 <span class="text-slate-300">|</span>
-                                                <button type="button" class="hover:underline hover:text-indigo-800"
+                                                <button type="button" class="hover:underline hover:text-brand-800"
                                                         @onclick="() => DescargarArchivoIndividual(doc.IdArchivo, doc.NombreArchivo)">
                                                     Descargar
                                                 </button>
@@ -435,7 +438,7 @@
                         <!-- MENSAJE DE APARTADO BLOQUEADO -->
                         <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800">
                             <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-xl shrink-0">
-                                🔒
+                                <SvgIcon Name="lock" CssClass="h-5 w-5 text-amber-700" />
                             </div>
                             <div>
                                 <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900">Apartado Bloqueado</h4>
@@ -458,7 +461,7 @@
                                         Fecha actuación: <span class="text-rose-500">*</span>
                                     </label>
                                     <input type="date"
-                                           class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                           class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                            @bind="nuevaActuacionFecha" />
                                 </div>
 
@@ -467,7 +470,7 @@
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">
                                         Actuación: <span class="text-rose-500">*</span>
                                     </label>
-                                    <select class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                    <select class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                             @bind="nuevaActuacionTipo">
                                         <option value="Registro">Registro</option>
                                         <option value="Admisión">Admisión</option>
@@ -484,7 +487,7 @@
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">
                                         Documento vinculado: <span class="text-slate-400 font-normal">(Opcional)</span>
                                     </label>
-                                    <select class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                    <select class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                             @bind="nuevoDocumentoVinculado">
                                         <option value="">-- Sin documento --</option>
                                         @foreach (var doc in documentosGuardados)
@@ -500,7 +503,7 @@
                                         Descripción: <span class="text-slate-400 font-normal">(Opcional)</span>
                                     </label>
                                     <input type="text"
-                                           class="w-full text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 px-3 py-2 border bg-white"
+                                           class="w-full text-xs rounded-lg border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 px-3 py-2 border bg-white"
                                            placeholder="Ej. Se admite el recurso y se requiere contestación al sujeto obligado..."
                                            @bind="nuevaActuacionDescripcion" />
                                 </div>
@@ -508,7 +511,7 @@
 
                             <!-- BOTÓN AGREGAR ACTUACIÓN Y ALERTA -->
                             <div class="flex items-center gap-3 pt-2">
-                                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition disabled:opacity-50"
+                                <button class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-sm transition disabled:opacity-50"
                                         @onclick="AgregarActuacion"
                                         disabled="@(modelo.IdExpediente == 0 || guardandoActuacion || string.IsNullOrWhiteSpace(nuevaActuacionTipo) || nuevaActuacionFecha == default)">
                                     @(guardandoActuacion ? "Guardando..." : "Agregar actuación")
@@ -519,7 +522,9 @@
                                     <div class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-all duration-300
                                     @(mensajeActuacionExito ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200")">
                                         <span>@mensajeActuacion</span>
-                                        <button type="button" class="text-slate-400 hover:text-slate-600 font-bold ml-1 leading-none" @onclick="() => mensajeActuacion = string.Empty">✕</button>
+                                        <button type="button" class="text-slate-400 hover:text-slate-600 ml-1 leading-none" aria-label="Cerrar mensaje" @onclick="() => mensajeActuacion = string.Empty">
+                                            <SvgIcon Name="close" CssClass="h-3.5 w-3.5" />
+                                        </button>
                                     </div>
                                 }
                             </div>
@@ -554,7 +559,7 @@
                                                 @act.FechaActuacion.ToString("dd/MM/yyyy")
                                             </td>
                                             <td class="px-4 py-2.5 whitespace-nowrap">
-                                                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700">
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-brand-50 text-brand-700">
                                                     @act.Actuacion
                                                 </span>
                                             </td>
@@ -564,7 +569,10 @@
                                             <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
                                                 @if (!string.IsNullOrWhiteSpace(act.DocumentoVinculado) && act.DocumentoVinculado != "—")
                                                 {
-                                                    <span class="text-indigo-600 font-medium">📄 @act.DocumentoVinculado</span>
+                                                    <span class="inline-flex items-center gap-1.5 text-brand-600 font-medium">
+                                                        <SvgIcon Name="file" CssClass="h-4 w-4 shrink-0" />
+                                                        @act.DocumentoVinculado
+                                                    </span>
                                                 }
                                                 else
                                                 {
@@ -610,7 +618,7 @@
                         @foreach (var exp in listaExpedientes)
                         {
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-3 font-semibold text-indigo-600">@exp.NumeroRecurso</td>
+                                <td class="px-4 py-3 font-semibold text-brand-600">@exp.NumeroRecurso</td>
                                 <td class="px-4 py-3">@exp.FolioSolicitud</td>
                                 <td class="px-4 py-3">@exp.NombreRecurrente</td>
                                 <td class="px-4 py-3">
@@ -622,7 +630,7 @@
                                     <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 font-semibold text-slate-600">@exp.TotalDocumentos</span>
                                 </td>
                                 <td class="px-4 py-3 text-center space-x-1">
-                                    <button class="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded transition"
+                                    <button class="px-3 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold rounded transition"
                                             @onclick="() => CargarParaEditar(exp)">
                                         @(EsSoloConsulta ? "Ver" : "Editar")
                                     </button>
