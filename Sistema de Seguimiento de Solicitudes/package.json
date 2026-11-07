@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "auditoria.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "tailwindcss -i ./wwwroot/css/tailwind-input.css -o ./wwwroot/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./wwwroot/css/tailwind-input.css -o ./wwwroot/css/tailwind.css --watch"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +17,7 @@
   },
   "type": "commonjs",
   "devDependencies": {
-    "tailwindcss": "^3.4.19"
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-motion": "^1.1.1"
   }
 }
