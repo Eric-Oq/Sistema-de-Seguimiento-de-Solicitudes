@@ -1,5 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 const tailwindcssMotion = require('tailwindcss-motion');
+const headerEnter = {
+    '0%': { opacity: '0', transform: 'translate3d(0, -12px, 0)' },
+    '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' }
+};
 
 module.exports = {
     content: [
@@ -30,13 +34,22 @@ module.exports = {
                     '55%': { transform: 'translateY(3px)' },
                     '80%': { transform: 'translateY(-2px)' },
                     '100%': { transform: 'translateY(0)' }
-                }
+                },
+                'sidebar-enter': {
+                    '0%': { opacity: '0', transform: 'translate3d(-12px, 0, 0)' },
+                    '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' }
+                },
+                'header-enter': headerEnter,
+                'header-enter-replay': headerEnter
             },
             animation: {
                 'balance-tilt': 'balance-tilt 5s ease-in-out infinite',
                 'balance-pan': 'balance-pan 5s ease-in-out infinite',
                 'login-error-shake': 'login-error-shake 0.6s ease-in-out',
-                'login-alert-bounce': 'login-alert-bounce 0.5s ease-out'
+                'login-alert-bounce': 'login-alert-bounce 0.5s ease-out',
+                'sidebar-enter': 'sidebar-enter 800ms ease-out backwards',
+                'header-enter': 'header-enter 800ms ease-out backwards',
+                'header-enter-replay': 'header-enter-replay 800ms ease-out backwards'
             },
             colors: {
                 brand: {

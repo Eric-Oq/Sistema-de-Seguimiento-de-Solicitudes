@@ -2,6 +2,11 @@
 
 
 <CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized Context="headerContext">
+            <SystemHeader User="@headerContext.User" />
+        </Authorized>
+    </AuthorizeView>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">

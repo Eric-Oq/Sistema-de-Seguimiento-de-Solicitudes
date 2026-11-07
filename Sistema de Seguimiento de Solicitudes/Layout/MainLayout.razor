@@ -18,14 +18,14 @@
 
 <div class="page flex-row">
     <!-- Panel lateral oscuro -->
-    <div class="sidebar">
+    <aside class="sidebar motion-safe:animate-sidebar-enter">
         <NavMenu />
-    </div>
+    </aside>
 
     <!-- Contenedor principal limpio -->
     <main class="module-main">
         <!-- Aquí se cargarán las páginas de tu módulo -->
-        <article class="content module-content">
+        <article class="content module-content motion-safe:motion-translate-y-in-[12px] motion-safe:motion-opacity-in-0 motion-safe:motion-duration-[800ms] motion-safe:[animation-fill-mode:backwards]">
             @Body
         </article>
     </main>

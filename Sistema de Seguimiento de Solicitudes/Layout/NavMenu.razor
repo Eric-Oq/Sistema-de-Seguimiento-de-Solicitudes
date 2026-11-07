@@ -1,64 +1,67 @@
-﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
-@using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
+@implements IDisposable
 
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavManager
-@inject AuthService AuthService
 
 @attribute [Authorize]
 
-<div class="sidebar-header">
-    <NavLink class="brand-logo" href="/menu">
-        <span class="back-icon">
-            <i class="bi bi-arrow-left"></i>
-        </span>
-        <span class="brand-text">Volver al menú</span>
-    </NavLink>
-</div>
+<div class="sidebar-panel absolute inset-y-0 left-0 overflow-hidden rounded-2xl border-[1px] border-[#612840] bg-[linear-gradient(180deg,#421224_0%,#2d0b19_55%,#240914_100%)] shadow-lg motion-safe:transition-[width,box-shadow] motion-safe:duration-300 motion-safe:ease-in-out @(isExpanded ? "is-expanded w-[min(250px,calc(100vw-24px))] shadow-xl" : "w-[68px]")" @onkeydown="HandleKeyDown">
+    <div class="sidebar-header">
+        <button @ref="toggleButton" type="button" class="sidebar-toggle" aria-label="@(isExpanded ? "Contraer menú lateral" : "Expandir menú lateral")" aria-expanded="@isExpanded.ToString().ToLowerInvariant()" aria-controls="sidebar-navigation" title="@(isExpanded ? "Contraer menú lateral" : "Expandir menú lateral")" @onclick="ToggleSidebar">
+            <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
+        <span class="sidebar-label" aria-hidden="true">Menú del módulo</span>
+    </div>
 
-<div class="nav-scrollable custom-scrollbar">
-    <nav class="flex-column nav-menu-container">
+    <div class="nav-scrollable custom-scrollbar">
+        <nav id="sidebar-navigation" class="flex-column nav-menu-container" aria-label="Navegación del módulo">
+            <div class="nav-item">
+                <NavLink class="pro-nav-link" href="/menu" Match="NavLinkMatch.All" aria-label="Volver al menú" title="Volver al menú" @onclick="CollapseSidebar">
+                    <i class="bi bi-arrow-left nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Volver al menú</span>
+                </NavLink>
+            </div>
 
         @* ============================================================
            MÓDULO DE SOLICITUDES
            ============================================================ *@
         @if (EnModuloSolicitudes)
         {
-            <div class="nav-section-title">Módulo Solicitudes</div>
+            <div class="nav-section-title" aria-hidden="@(!isExpanded)">Módulo Solicitudes</div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/indice-expedientes">
-                    <i class="bi bi-journal-text nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/indice-expedientes" aria-label="Consulta" title="Consulta" @onclick="CollapseSidebar">
+                    <i class="bi bi-journal-text nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Consulta</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/Calendario">
-                    <i class="bi bi-calendar-event nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/Calendario" aria-label="Calendario" title="Calendario" @onclick="CollapseSidebar">
+                    <i class="bi bi-calendar-event nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Calendario</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/inicio-solicitudes">
-                    <i class="bi bi-inboxes nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/inicio-solicitudes" aria-label="Inicio Solicitudes" title="Inicio Solicitudes" @onclick="CollapseSidebar">
+                    <i class="bi bi-inboxes nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Inicio Solicitudes</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/historial-solicitudes">
-                    <i class="bi bi-clock-history nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/modulo-solicitudes/historial-solicitudes" aria-label="Historial" title="Historial" @onclick="CollapseSidebar">
+                    <i class="bi bi-clock-history nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Historial</span>
                 </NavLink>
             </div>
 
             <AuthorizeView Roles="ADMINISTRADOR">
                 <div class="nav-item mt-3">
-                    <NavLink class="pro-nav-link danger-link" href="/menu/modulo-solicitudes/eliminar-expedientes">
-                        <i class="bi bi-trash3 nav-icon"></i>
+                    <NavLink class="pro-nav-link danger-link" href="/menu/modulo-solicitudes/eliminar-expedientes" aria-label="Eliminar" title="Eliminar" @onclick="CollapseSidebar">
+                        <i class="bi bi-trash3 nav-icon" aria-hidden="true"></i>
                         <span class="nav-text">Eliminar</span>
                     </NavLink>
                 </div>
@@ -70,54 +73,67 @@
            ============================================================ *@
         @if (EnModuloRecursos)
         {
-            <div class="nav-section-divider"></div>
-            <div class="nav-section-title">Recursos de Revisión</div>
+            <div class="nav-section-title" aria-hidden="@(!isExpanded)">Recursos de Revisión</div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/recursos-revision/registro/expediente">
-                    <i class="bi bi-folder2-open nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/recursos-revision/registro/expediente" aria-label="Expediente" title="Expediente" @onclick="CollapseSidebar">
+                    <i class="bi bi-folder2-open nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Expediente</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/recursos-revision/busqueda">
-                    <i class="bi bi-search nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/recursos-revision/busqueda" aria-label="Buscar Recursos" title="Buscar Recursos" @onclick="CollapseSidebar">
+                    <i class="bi bi-search nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Buscar Recursos</span>
                 </NavLink>
             </div>
 
             <div class="nav-item">
-                <NavLink class="pro-nav-link" href="/menu/recursos-revision/estadisticas">
-                    <i class="bi bi-bar-chart nav-icon"></i>
+                <NavLink class="pro-nav-link" href="/menu/recursos-revision/estadisticas" aria-label="Datos Estadísticos" title="Datos Estadísticos" @onclick="CollapseSidebar">
+                    <i class="bi bi-bar-chart nav-icon" aria-hidden="true"></i>
                     <span class="nav-text">Datos Estadísticos</span>
                 </NavLink>
             </div>
         }
 
-    </nav>
-
-    <div class="nav-item px-3 py-3">
-        <button class="pro-nav-link w-100 text-start" @onclick="CerrarSesion">
-            <i class="bi bi-box-arrow-right nav-icon"></i>
-            <span class="nav-text">Cerrar sesión</span>
-        </button>
+        </nav>
     </div>
 </div>
 
 @code {
+    private bool isExpanded;
+    private ElementReference toggleButton;
     private bool EnModuloSolicitudes => NavManager.Uri.Contains("/menu/modulo-solicitudes", StringComparison.OrdinalIgnoreCase);
     private bool EnModuloRecursos => NavManager.Uri.Contains("/menu/recursos-revision", StringComparison.OrdinalIgnoreCase);
 
     protected override void OnInitialized()
     {
-        NavManager.LocationChanged += (s, e) => StateHasChanged();
+        NavManager.LocationChanged += OnLocationChanged;
     }
 
-    private async Task CerrarSesion()
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        await AuthService.Logout();
-        NavManager.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
+        CollapseSidebar();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleSidebar() => isExpanded = !isExpanded;
+
+    private void CollapseSidebar() => isExpanded = false;
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape" && isExpanded)
+        {
+            CollapseSidebar();
+            await toggleButton.FocusAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= OnLocationChanged;
     }
 }
 
@@ -130,11 +146,6 @@
         --sidebar-text-hover: #fff7f9;
         --sidebar-active-text: #edb2c5;
         --sidebar-hover-bg: rgba(159, 71, 104, 0.18);
-    }
-
-    .sidebar {
-        background: linear-gradient(180deg, #421224 0%, var(--sidebar-bg) 55%, #240914 100%) !important;
-        border-right: 1px solid var(--sidebar-border);
     }
 
     /* ================= HEADER Y LOGO ================= */
@@ -215,12 +226,6 @@
         letter-spacing: 0.08em;
         color: #F0F0F0;
         margin: 0.1rem 0 0.5rem 0.60rem;
-    }
-
-    .nav-section-divider {
-        height: 1px;
-        background-color: rgba(255,255,255,0.05);
-        margin: 1rem 0.5rem;
     }
 
     /* ================= ENLACES DEL MENÚ ================= */

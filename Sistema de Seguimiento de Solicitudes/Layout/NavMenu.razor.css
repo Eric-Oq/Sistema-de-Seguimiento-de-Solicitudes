@@ -151,15 +151,117 @@
     color: var(--sidebar-text-hover, #fff7f9);
 }
 
-@media (min-width: 641px) {
-    .nav-scrollable {
-        height: calc(100vh - 4.5rem);
-        width: 100%;
-    }
+.sidebar-panel .nav-scrollable {
+    height: calc(100% - 4.5rem);
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 @media (max-width: 640px) {
-    .nav-scrollable {
-        height: calc(100vh - 4rem);
+    .sidebar-panel .nav-scrollable {
+        height: calc(100% - 4rem);
+    }
+}
+
+.sidebar-panel .sidebar-header {
+    gap: 12px;
+    padding: 0 12px;
+}
+
+.sidebar-toggle {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: #fff7f9;
+    font-size: 1.4rem;
+}
+
+.sidebar-toggle:hover {
+    color: #edb2c5;
+}
+
+.sidebar-toggle:focus-visible {
+    outline: 2px solid #fff7f9;
+    outline-offset: 2px;
+}
+
+.sidebar-panel .sidebar-label,
+.sidebar-panel .nav-text,
+.sidebar-panel .nav-section-title {
+    white-space: nowrap;
+}
+
+.sidebar-panel .sidebar-label,
+.sidebar-panel .nav-text {
+    opacity: 1;
+}
+
+.sidebar-panel .sidebar-label {
+    color: #fff7f9;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.sidebar-panel:not(.is-expanded) .sidebar-label,
+.sidebar-panel:not(.is-expanded) .nav-text {
+    opacity: 0;
+    transform: translateX(-6px);
+}
+
+.sidebar-panel:not(.is-expanded) .nav-section-title {
+    opacity: 0;
+}
+
+.sidebar-panel .nav-menu-container {
+    padding: 0 12px;
+}
+
+.sidebar-panel ::deep .pro-nav-link {
+    min-width: 44px;
+    padding-right: 13px;
+    padding-left: 13px;
+    white-space: nowrap;
+}
+
+.sidebar-panel .nav-icon {
+    flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .sidebar-toggle .bi {
+        transition: transform 250ms ease, color 200ms ease;
+    }
+
+    .sidebar-panel.is-expanded .sidebar-toggle .bi {
+        transform: rotate(90deg);
+    }
+
+    .sidebar-panel .sidebar-label,
+    .sidebar-panel .nav-text {
+        transition: opacity 200ms ease, transform 200ms ease;
+    }
+
+    .sidebar-panel ::deep .pro-nav-link {
+        transition: transform 200ms ease, color 200ms ease, box-shadow 200ms ease;
+    }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .sidebar-toggle:hover .bi {
+        transform: scale(1.1);
+    }
+
+    .sidebar-panel.is-expanded .sidebar-toggle:hover .bi {
+        transform: rotate(90deg) scale(1.1);
+    }
+
+    .sidebar-panel ::deep .pro-nav-link:hover {
+        transform: translateY(-3px);
     }
 }

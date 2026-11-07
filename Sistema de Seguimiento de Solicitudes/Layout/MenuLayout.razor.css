@@ -1,8 +1,8 @@
 .page {
     display: flex;
     flex-direction: row;
-    min-height: 100vh;
-    height: 100vh;
+    min-height: calc(100vh - 64px);
+    height: calc(100vh - 64px);
     overflow-y: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;

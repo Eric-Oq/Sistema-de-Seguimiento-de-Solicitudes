@@ -1,0 +1,124 @@
+@using System.Security.Claims
+@using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
+@implements IDisposable
+
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<header class="sticky top-0 z-30 h-[64px] bg-[#f6edf0]/95 px-4 py-1">
+    @if (userPanelOpen)
+    {
+        <div aria-hidden="true" class="fixed inset-0 z-0" @onclick="CloseUserPanel"></div>
+    }
+    <div class="relative z-10 mx-auto flex h-full max-w-[1800px] items-center gap-2 rounded-xl border-[1px] border-t-[3px] px-3 shadow-sm motion-safe:transition-colors motion-safe:duration-300 sm:gap-4 sm:px-5 @(replayHeaderAnimation ? "motion-safe:animate-header-enter-replay" : "motion-safe:animate-header-enter") @(IsMenu ? "border-brand-100 border-t-brand-800 bg-white" : "border-brand-800 border-t-brand-700 bg-brand-900")">
+        <a href="/menu" aria-label="Ir al menú principal" class="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:gap-3 @(IsMenu ? "focus-visible:outline-brand-700" : "focus-visible:outline-white")" @onclick="CloseUserPanel">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg @(IsMenu ? "bg-brand-800" : "bg-brand-700")">
+                <img src="favicon-seguimiento.svg" alt="" class="h-9 w-9" />
+            </span>
+            <span class="min-w-0 border-l pl-2 sm:pl-3 @(IsMenu ? "border-brand-100" : "border-brand-600")">
+                <span class="block truncate text-[10px] font-extrabold uppercase tracking-wider sm:text-xs @(IsMenu ? "text-brand-950" : "text-white")">Sistema de Seguimiento</span>
+                <span class="hidden text-[10px] sm:block @(IsMenu ? "text-slate-500" : "text-brand-100")">Gestión de solicitudes</span>
+            </span>
+        </a>
+
+        <div class="ml-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
+            @if (User.IsInRole("ADMINISTRADOR") || User.IsInRole("SUPERVISIÓN"))
+            {
+                <a href="/menu/modulo-solicitudes/CreacionUsuarios" aria-label="Crear usuarios" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-semibold text-brand-800 hover:bg-brand-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-safe:transition-colors motion-safe:duration-200 @(IsMenu ? "focus-visible:outline-brand-700" : "focus-visible:outline-white")" @onclick="CloseUserPanel">
+                    <i class="fas fa-user-plus" aria-hidden="true"></i>
+                    <span class="hidden sm:inline">Crear usuarios</span>
+                </a>
+            }
+
+            <div class="relative border-l pl-2 sm:pl-3 @(IsMenu ? "border-brand-100" : "border-brand-600")" @onkeydown="HandleUserPanelKeyDown">
+                <button @ref="userPanelButton" type="button" aria-label="@($"Información del usuario: {DisplayName}")" aria-expanded="@userPanelOpen.ToString().ToLowerInvariant()" aria-controls="system-user-panel" class="flex min-w-0 items-center gap-2 rounded-lg p-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-safe:transition-colors motion-safe:duration-200 @(IsMenu ? "hover:bg-brand-50 focus-visible:outline-brand-700" : "hover:bg-brand-800 focus-visible:outline-white")" @onclick="ToggleUserPanel">
+                    <span aria-hidden="true" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-200 bg-brand-50 text-sm font-bold uppercase text-brand-800">@UserInitial</span>
+                    <span class="hidden min-w-0 max-w-[180px] sm:block">
+                        <span class="block truncate text-xs font-bold @(IsMenu ? "text-brand-950" : "text-white")">@DisplayName</span>
+                        <span class="block truncate text-[10px] @(IsMenu ? "text-slate-600" : "text-brand-100")">@DisplayRole</span>
+                    </span>
+                </button>
+
+                @if (userPanelOpen)
+                {
+                    <div id="system-user-panel" role="region" aria-label="Información de la sesión" class="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-brand-100 bg-white p-4 shadow-[0_12px_30px_rgba(66,18,36,0.18)] motion-safe:motion-preset-fade">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-brand-600">Sesión iniciada</p>
+                        <p class="mt-2 break-words text-sm font-bold text-brand-950">@DisplayName</p>
+                        <p class="mt-1 break-words text-xs text-slate-600">@DisplayRole</p>
+                        <button type="button" class="group mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs font-semibold text-brand-800 hover:bg-brand-100 active:bg-brand-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 motion-safe:transition-colors motion-safe:duration-200" @onclick="LogoutClicked">
+                            <i class="fas fa-sign-out-alt motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-active:translate-x-1" aria-hidden="true"></i>
+                            Cerrar sesión
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</header>
+
+@code {
+    [Parameter, EditorRequired]
+    public ClaimsPrincipal User { get; set; } = default!;
+
+    private string DisplayName => string.IsNullOrWhiteSpace(User.Identity?.Name) ? "Sesión activa" : User.Identity.Name;
+    private string DisplayRole => User.FindFirst(ClaimTypes.Role)?.Value ?? "Sin rol";
+    private string UserInitial => DisplayName[..1];
+    private bool userPanelOpen;
+    private bool replayHeaderAnimation;
+    private string currentSection = string.Empty;
+    private ElementReference userPanelButton;
+    private bool IsMenu => string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/'), "menu", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized()
+    {
+        currentSection = GetSection(Navigation.Uri);
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        var nextSection = GetSection(args.Location);
+        if (!string.Equals(currentSection, nextSection, StringComparison.OrdinalIgnoreCase))
+        {
+            currentSection = nextSection;
+            replayHeaderAnimation = !replayHeaderAnimation;
+        }
+
+        CloseUserPanel();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private string GetSection(string uri)
+    {
+        var segments = Navigation.ToBaseRelativePath(uri).Split('?', '#')[0]
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        return segments.Length > 1 && string.Equals(segments[0], "menu", StringComparison.OrdinalIgnoreCase)
+            ? $"{segments[0]}/{segments[1]}"
+            : segments.FirstOrDefault() ?? string.Empty;
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    private void ToggleUserPanel() => userPanelOpen = !userPanelOpen;
+
+    private void CloseUserPanel() => userPanelOpen = false;
+
+    private async Task HandleUserPanelKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape" && userPanelOpen)
+        {
+            CloseUserPanel();
+            await userPanelButton.FocusAsync();
+        }
+    }
+
+    private async Task LogoutClicked()
+    {
+        await AuthService.Logout();
+        Navigation.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
+    }
+}
