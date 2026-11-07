@@ -6,16 +6,26 @@
 
 main {
     flex: 1;
+    min-width: 0;
+    width: 100%;
+}
+
+.module-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: clamp(1rem, 1.5vw, 1.5rem);
 }
 
 .sidebar {
-    background-color: #090e17 !important;
-    border-right: 1px solid #1e293b;
+    background: linear-gradient(180deg, #421224 0%, #2d0b19 55%, #240914 100%) !important;
+    border-right: 1px solid #612840;
     position: sticky;
     top: 0;
     height: 100vh; /* Fuerza a la barra a medir exactamente el alto del monitor */
     flex-shrink: 0; /* Evita que el contenedor derecho la aplaste */
-    overflow-y: auto; /* Agrega una barra de desplazamiento interna por si el menú crece en el futuro */
+    overflow-y: auto; /* Agrega una barra de desplazamiento interna por si el menï¿½ crece en el futuro */
 }
 
     .sidebar::-webkit-scrollbar {
@@ -87,8 +97,4 @@ main {
             width: 0;
         }
 
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
 }

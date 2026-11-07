@@ -20,13 +20,13 @@
     z-index: 1;
     overflow: hidden; /* Mantiene las partículas dentro del área */
     border-radius: 30px;
-    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    background: linear-gradient(135deg, #fbf8f6 0%, #f6ecef 55%, #f1e6e9 100%);
     box-shadow: inset 0 0 100px rgba(255,255,255,0.5);
 }
 
     /* CAPA DE PARTÍCULAS 1 (Lentas y grandes) */
     .module-container::before {
-        content: '';
+        content: none;
         position: absolute;
         top: 0;
         left: 0;
@@ -42,7 +42,7 @@
 
     /* CAPA DE PARTÍCULAS 2 (Rápidas y pequeñas - Efecto de Profundidad 3D) */
     .module-container::after {
-        content: '';
+        content: none;
         position: absolute;
         top: 0;
         left: 0;

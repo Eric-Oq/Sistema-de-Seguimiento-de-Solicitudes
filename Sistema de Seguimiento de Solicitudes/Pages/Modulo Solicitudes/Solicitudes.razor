@@ -11,7 +11,8 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
-<PageTitle>Solicitudes</PageTitle>
+<PageTitle>Seguimiento de solicitudes</PageTitle>
+<main class="ss-page-legacy motion-safe:motion-preset-fade">
 
 <h3>Solicitudes de Acceso a la Información</h3>
 
@@ -99,6 +100,9 @@
     </tbody>
 </table>
 
+
+</main>
+
 @code {
     private List<Solicitud> Solicitudess { get; set; } = new();
     private bool MostrarFormularioModal { get; set; } = false;
@@ -146,68 +150,3 @@
         public string? Estatus { get; set; }
     }
 }
-
-<style>
-    .etapas {
-        display: flex;
-        justify-content: space-around;
-        margin-bottom: 20px;
-    }
-
-    .etapa {
-        padding: 10px;
-        font-weight: bold;
-        color: white;
-        text-align: center;
-        border-radius: 5px;
-        flex-grow: 1;
-    }
-
-    .etapa-inicial {
-        background-color: red;
-    }
-
-    .etapa-seguimiento {
-        background-color: blue;
-    }
-
-    .etapa-final {
-        background-color: yellow;
-        color: black;
-    }
-
-    .btn-eliminar {
-        background: transparent;
-        border: none;
-        color: red;
-        font-size: 16px;
-        cursor: pointer;
-    }
-
-        .btn-eliminar:hover {
-            text-decoration: underline;
-        }
-
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .modal-contenido {
-        background-color: white;
-        padding: 20px;
-        border-radius: 5px;
-        text-align: center;
-    }
-
-        .modal-contenido button {
-            margin: 5px;
-        }
-</style>

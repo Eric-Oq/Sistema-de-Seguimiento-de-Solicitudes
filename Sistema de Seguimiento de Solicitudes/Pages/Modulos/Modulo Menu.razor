@@ -2,17 +2,35 @@
 @attribute [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA,CONSULTA")]
 
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Sistema_de_Seguimiento_de_Solicitudes.Services
+@using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
 @using SolicitudesShared
 
 @layout MenuLayout
 
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject AuthService AuthService
 
-<PageTitle>Menú Principal</PageTitle>
+<PageTitle>Seguimiento de solicitudes</PageTitle>
 
 <div class="module-container">
+    <div class="mb-6 flex flex-wrap justify-end gap-3">
+        <AuthorizeView Roles="ADMINISTRADOR, SUPERVISIÓN">
+            <Authorized>
+                <button class="inline-flex items-center gap-2 rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-900" @onclick="IrACrearUsuarios">
+                    <i class="fas fa-user-plus" aria-hidden="true"></i>
+                    Crear usuarios
+                </button>
+            </Authorized>
+        </AuthorizeView>
+        <button class="inline-flex items-center gap-2 rounded-md bg-rose-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-800" @onclick="LogoutClicked">
+            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+            Cerrar sesión
+        </button>
+    </div>
+
     <h1 class="module-header">Menú Principal</h1>
     <p class="module-subtitle">Seleccione un módulo para continuar</p>
 
@@ -51,6 +69,17 @@
 </div>
 
 @code {
+    private async Task LogoutClicked()
+    {
+        await AuthService.Logout();
+        Navigation.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
+    }
+
+    private void IrACrearUsuarios()
+    {
+        Navigation.NavigateTo("/menu/modulo-solicitudes/CreacionUsuarios");
+    }
+
     private string GetCardColor(int index)
     {
         string[] colors = { "card-green", "card-purple", "card-orange", "card-red", "card-teal",

@@ -11,14 +11,15 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Eliminar Expedientes</PageTitle>
+<PageTitle>Seguimiento de solicitudes</PageTitle>
 
-<div class="container-eliminar">
+<div class="container-eliminar ss-page-delete motion-safe:motion-preset-fade">
     <div class="header-section">
         <h3 class="title">Eliminación de Expedientes</h3>
         <div class="search-box">
+            <SvgIcon Name="search" CssClass="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input type="text" class="search-input" 
-                   placeholder="🔍 Buscar por nombre, folio, fecha, año..." 
+                   placeholder="Buscar por nombre, folio, fecha, año..."
                    @bind="Filtro" @bind:event="oninput" />
         </div>
     </div>

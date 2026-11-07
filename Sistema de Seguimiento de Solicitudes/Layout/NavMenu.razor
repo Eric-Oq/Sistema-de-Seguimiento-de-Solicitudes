@@ -124,17 +124,16 @@
 <style>
     /* ================= ULTRA-PREMIUM PALETTE ================= */
     :root {
-        --sidebar-bg: #090e17; /* Ultra oscuro, casi negro abismal */
-        --sidebar-border: #1e293b;
-        --sidebar-text: #94a3b8;
-        --sidebar-text-hover: #ffffff;
-        --sidebar-active-text: #818cf8; /* Índigo neón */
-        --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+        --sidebar-bg: #2d0b19;
+        --sidebar-border: #612840;
+        --sidebar-text: #dfc7d0;
+        --sidebar-text-hover: #fff7f9;
+        --sidebar-active-text: #edb2c5;
+        --sidebar-hover-bg: rgba(159, 71, 104, 0.18);
     }
 
     .sidebar {
-        background-color: var(--sidebar-bg) !important;
-        background-image: none !important;
+        background: linear-gradient(180deg, #421224 0%, var(--sidebar-bg) 55%, #240914 100%) !important;
         border-right: 1px solid var(--sidebar-border);
     }
 
@@ -165,8 +164,8 @@
 
     /* ================= DISEÑO DEL ÍCONO ================= */
     .back-icon {
-        background-color: rgba(99, 102, 241, 0.1); /* Fondo muy sutil (Índigo transparente) */
-        color: #818cf8; /* Color del ícono (Índigo claro) */
+        background-color: rgba(159, 71, 104, 0.2);
+        color: #e6c6d1;
         width: 32px;
         height: 32px;
         display: flex;
@@ -179,7 +178,7 @@
 
     /* Efecto hover específico para el ícono */
     .brand-logo:hover .back-icon {
-        background-color: rgba(99, 102, 241, 0.2);
+        background-color: rgba(159, 71, 104, 0.34);
         transform: translateX(-3px); /* Pequeña animación hacia la izquierda indicando "regreso" */
     }
 
@@ -253,8 +252,9 @@
 
     /* Hover */
     .pro-nav-link:hover {
-        background-color: var(--sidebar-hover-bg);
+        background: linear-gradient(90deg, rgba(159, 71, 104, 0.24), rgba(87, 23, 47, 0.08));
         color: var(--sidebar-text-hover);
+        box-shadow: inset 3px 0 #bd708b, 0 0 16px rgba(159, 71, 104, 0.18);
     }
 
         .pro-nav-link:hover .nav-icon {
@@ -264,7 +264,7 @@
 
     /* ESTADO ACTIVO ULTRA PREMIUM (Gradiente + Barra) */
     .pro-nav-link.active {
-        background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+        background: linear-gradient(90deg, rgba(159, 71, 104, 0.3) 0%, rgba(87, 23, 47, 0.08) 100%);
         color: var(--sidebar-active-text);
         font-weight: 600;
         position: relative;
@@ -280,7 +280,7 @@
             width: 3px;
             background-color: var(--sidebar-active-text);
             border-radius: 0 4px 4px 0;
-            box-shadow: 2px 0 8px rgba(99, 102, 241, 0.5);
+            box-shadow: 2px 0 8px rgba(211, 160, 178, 0.55);
         }
 
         .pro-nav-link.active .nav-icon {
