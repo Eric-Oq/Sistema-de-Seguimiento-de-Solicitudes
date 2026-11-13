@@ -23,6 +23,18 @@
                 </NavLink>
             </div>
 
+        @if (EnGestionUsuarios)
+        {
+            <div class="nav-section-title" aria-hidden="@(!isExpanded)">Gestión de usuarios</div>
+
+            <div class="nav-item">
+                <NavLink class="pro-nav-link" href="@(EnRutaUsuariosAnterior ? "/menu/modulo-solicitudes/CreacionUsuarios" : "/menu/usuarios")" Match="NavLinkMatch.All" aria-label="Usuarios" title="Usuarios" @onclick="CollapseSidebar">
+                    <i class="bi bi-people nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Usuarios</span>
+                </NavLink>
+            </div>
+        }
+
         @* ============================================================
            MÓDULO DE SOLICITUDES
            ============================================================ *@
@@ -104,7 +116,10 @@
 @code {
     private bool isExpanded;
     private ElementReference toggleButton;
-    private bool EnModuloSolicitudes => NavManager.Uri.Contains("/menu/modulo-solicitudes", StringComparison.OrdinalIgnoreCase);
+    private string CurrentPath => NavManager.ToBaseRelativePath(NavManager.Uri).Split('?', '#')[0].TrimEnd('/');
+    private bool EnRutaUsuariosAnterior => string.Equals(CurrentPath, "menu/modulo-solicitudes/CreacionUsuarios", StringComparison.OrdinalIgnoreCase);
+    private bool EnGestionUsuarios => string.Equals(CurrentPath, "menu/usuarios", StringComparison.OrdinalIgnoreCase) || EnRutaUsuariosAnterior;
+    private bool EnModuloSolicitudes => !EnGestionUsuarios && NavManager.Uri.Contains("/menu/modulo-solicitudes", StringComparison.OrdinalIgnoreCase);
     private bool EnModuloRecursos => NavManager.Uri.Contains("/menu/recursos-revision", StringComparison.OrdinalIgnoreCase);
 
     protected override void OnInitialized()

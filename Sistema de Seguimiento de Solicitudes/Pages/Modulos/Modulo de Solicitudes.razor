@@ -13,6 +13,7 @@
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AppMessageService Messages
 
 <PageTitle>Seguimiento de solicitudes</PageTitle>
 
@@ -62,7 +63,7 @@
 @code {
     private async Task ShowComingSoon()
     {
-        await JSRuntime.InvokeVoidAsync("alert", "Esta funcionalidad estará disponible próximamente");
+        await Messages.InfoAsync("Esta funcionalidad estará disponible próximamente.");
     }
 
     private void NavigateToInicioSolicitudes()
@@ -87,7 +88,7 @@
 
     private void NavigateToCreacionUsuarios()
     {
-        Navigation.NavigateTo("/menu/modulo-solicitudes/CreacionUsuarios");
+        Navigation.NavigateTo("/menu/usuarios");
     }
 
     private void NavigateToEliminarExpediente()

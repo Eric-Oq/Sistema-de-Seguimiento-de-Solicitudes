@@ -24,7 +24,7 @@
         <div class="ml-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
             @if (User.IsInRole("ADMINISTRADOR") || User.IsInRole("SUPERVISIÓN"))
             {
-                <a href="/menu/modulo-solicitudes/CreacionUsuarios" aria-label="Crear usuarios" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-semibold text-brand-800 hover:bg-brand-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-safe:transition-colors motion-safe:duration-200 @(IsMenu ? "focus-visible:outline-brand-700" : "focus-visible:outline-white")" @onclick="CloseUserPanel">
+                <a href="/menu/usuarios" aria-label="Crear usuarios" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-semibold text-brand-800 hover:bg-brand-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-safe:transition-colors motion-safe:duration-200 @(IsMenu ? "focus-visible:outline-brand-700" : "focus-visible:outline-white")" @onclick="CloseUserPanel">
                     <i class="fas fa-user-plus" aria-hidden="true"></i>
                     <span class="hidden sm:inline">Crear usuarios</span>
                 </a>
