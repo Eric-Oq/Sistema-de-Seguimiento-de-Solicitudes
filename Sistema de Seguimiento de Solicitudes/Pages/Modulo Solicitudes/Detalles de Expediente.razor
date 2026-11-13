@@ -18,11 +18,18 @@
 @inject IExpedienteService ExpedienteService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ICalendarioService CalendarioService
+@inject AppMessageService Messages
 
 <PageTitle>Seguimiento de solicitudes</PageTitle>
 
 <div class="page-container ss-page-details motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms]">
 
+    @if (cargandoInicial)
+    {
+        <LoadingContent Sections="3" Fields="4" />
+    }
+    else
+    {
     <div class="page-header">
         <div>
             <span class="badge-status @ObtenerClaseEstatus(Expediente.Estatus)">
@@ -35,12 +42,12 @@
             </p>
         </div>
         <div class="header-actions">
-            <button class="btn-outline" type="button" @onclick="VolverAtras">
+            <button class="btn-outline detail-header-action" type="button" @onclick="VolverAtras">
                 <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Style="width: 18px; height: 18px; flex-shrink: 0; margin-right: 6px;" /> Volver
             </button>
             @if (!EsSoloConsulta)
             {
-                <button class="btn-primary" type="button" @onclick="ForzarGuardado">
+                <button class="btn-primary detail-header-action" type="button" @onclick="ForzarGuardado">
                     <MudIcon Icon="@Icons.Material.Filled.Save" Style="width: 18px; height: 18px; flex-shrink: 0; margin-right: 6px;" /> Guardar Cambios
                 </button>
             }
@@ -563,6 +570,7 @@
             <p>Cargando información del expediente...</p>
         </div>
     }
+    }
 </div>
 
 @code {
@@ -617,6 +625,7 @@
     private bool EsSoloConsulta => Usuario?.IsInRole("CONSULTA") ?? false;
 
     private Expediente Expediente { get; set; } = new Expediente();
+    private bool cargandoInicial = true;
     private List<DateTime> DiasInhabiles { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
@@ -704,6 +713,7 @@
         {
             Navigation.NavigateTo("/menu/modulo-solicitudes/indice-expedientes");
         }
+        cargandoInicial = false;
     }
 
     private void ActualizarFechaLimite()
@@ -851,12 +861,12 @@
         var exito = await ExpedienteService.Actualizar(expedienteOriginal);
         if (exito)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Cambios guardados correctamente.");
+            await Messages.SuccessAsync("Cambios guardados correctamente.");
             Navigation.NavigateTo("/menu/modulo-solicitudes/indice-expedientes");
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Error al guardar los cambios.");
+            await Messages.ErrorAsync("Error al guardar los cambios.");
         }
     }
 

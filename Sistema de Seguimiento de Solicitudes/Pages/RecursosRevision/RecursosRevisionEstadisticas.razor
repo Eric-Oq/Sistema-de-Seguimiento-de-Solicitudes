@@ -8,6 +8,7 @@
 @using System.Globalization
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject AppMessageService Messages
 @inject NavigationManager NavManager
 
 <!-- ENCABEZADO EJECUTIVO -->
@@ -93,7 +94,15 @@
 </div>
 
 <!-- ÁREA DE REPORTE Y DESGLOSE -->
-@if (!estadisticas.Any() && !cargando)
+@if (cargando && !estadisticas.Any())
+{
+    <LoadingContent Sections="3" Fields="4" />
+}
+else if (!string.IsNullOrEmpty(errorEstadisticas))
+{
+    <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700">@errorEstadisticas</div>
+}
+else if (!estadisticas.Any() && !cargando)
 {
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center text-slate-400">
         <SvgIcon Name="clipboard" CssClass="mx-auto mb-2 h-8 w-8" />
@@ -375,6 +384,7 @@ else if (estadisticas.Any())
     private string materiaSeleccionada = string.Empty;
 
     private bool cargando = false;
+    private string errorEstadisticas = string.Empty;
     private List<EstadisticaDTO> estadisticas = new();
 
     // Estado del Modal Drill-Down
@@ -416,6 +426,7 @@ else if (estadisticas.Any())
     private async Task CargarEstadisticas()
     {
         cargando = true;
+        errorEstadisticas = string.Empty;
         StateHasChanged();
 
         try
@@ -448,7 +459,8 @@ else if (estadisticas.Any())
         catch (Exception ex)
         {
             estadisticas = new();
-            await JS.InvokeVoidAsync("alert", $"Error al cargar estadísticas: {ex.Message}");
+            errorEstadisticas = "No fue posible cargar las estadísticas. Inténtalo nuevamente.";
+            await Messages.ErrorAsync($"Error al cargar estadísticas: {ex.Message}");
         }
         finally
         {
@@ -533,12 +545,12 @@ else if (estadisticas.Any())
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", $"No se encontró el ID del expediente {numeroRecurso}.");
+                await Messages.WarningAsync($"No se encontró el ID del expediente {numeroRecurso}.");
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al abrir el expediente: {ex.Message}");
+            await Messages.ErrorAsync($"Error al abrir el expediente: {ex.Message}");
         }
     }
 
@@ -632,7 +644,7 @@ else if (estadisticas.Any())
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al generar el archivo Excel: {ex.Message}");
+            await Messages.ErrorAsync($"Error al generar el archivo Excel: {ex.Message}");
         }
     }
 }

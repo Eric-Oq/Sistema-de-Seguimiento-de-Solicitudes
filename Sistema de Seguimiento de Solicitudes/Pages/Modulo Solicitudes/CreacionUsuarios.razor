@@ -1,4 +1,5 @@
-﻿@page "/menu/modulo-solicitudes/CreacionUsuarios"
+﻿@page "/menu/usuarios"
+@page "/menu/modulo-solicitudes/CreacionUsuarios"
 
 @attribute [Authorize]
 @attribute [Authorize(Roles = "ADMINISTRADOR, SUPERVISIÓN")]
@@ -21,12 +22,12 @@
 @inject IExpedienteService ExpedienteService
 @inject HttpClient Http
 
-<PageTitle>Seguimiento de solicitudes</PageTitle>
+<PageTitle>Gestión de Usuarios - Seguimiento de solicitudes</PageTitle>
 
-<div class="page-container ss-page-users motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms]">
+<div class="page-container ss-page-users motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms] @((MostrarFormularioModal || MostrarModalCambioContrasena) ? "users-modal-open" : "")">
     <div class="header-flex">
         <h2 class="page-title">Gestión de Usuarios</h2>
-        <button class="btn-new" @onclick="MostrarFormulario">
+        <button class="btn-new" @onclick="MostrarFormulario" disabled="@cargandoInicial">
             <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Style="width: 20px; height: 20px; flex-shrink: 0;" />
             Nuevo Usuario
         </button>
@@ -35,7 +36,7 @@
     <div class="search-bar-wrapper">
         <div class="search-container">
             <MudIcon Icon="@Icons.Material.Filled.Search" Style="width: 20px; height: 20px; flex-shrink: 0; position: absolute; left: 16px; top: 12px; color: #94a3b8;" />
-            <input type="text" class="search-input" placeholder="Buscar por nombre, ID o rol..." @bind="Filtro" @bind:event="oninput" />
+            <input type="text" class="search-input" placeholder="Buscar por nombre, ID o rol..." @bind="Filtro" @bind:event="oninput" disabled="@cargandoInicial" />
         </div>
     </div>
 
@@ -49,8 +50,18 @@
                     <th style="text-align: center; width: 180px;">@(EsAdministrador ? "Acciones" : string.Empty)</th>
                 </tr>
             </thead>
-            <tbody>
-                @if (UsuariosFiltrados != null && UsuariosFiltrados.Any())
+            <tbody aria-busy="@cargandoInicial">
+                @if (cargandoInicial)
+                {
+                    <LoadingTableRows Columns="4" />
+                }
+                else if (!string.IsNullOrEmpty(errorCargaInicial))
+                {
+                    <tr>
+                        <td colspan="4" role="alert" class="empty-state text-rose-700">@errorCargaInicial</td>
+                    </tr>
+                }
+                else if (UsuariosFiltrados != null && UsuariosFiltrados.Any())
                 {
                     @foreach (var usuario in PagedUsuarios)
                     {
@@ -93,6 +104,8 @@
             </tbody>
         </table>
 
+        @if (!cargandoInicial)
+        {
         <div class="pagination-container">
             <button class="btn-pag" @onclick="PrevPage" disabled="@(currentPage <= 1)">
                 <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Style="width: 20px; height: 20px; flex-shrink: 0;" />
@@ -104,37 +117,38 @@
                 <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="width: 20px; height: 20px; flex-shrink: 0;" />
             </button>
         </div>
+        }
     </div>
-</div>
-
 @if (MostrarFormularioModal)
 {
     <div class="modern-modal-backdrop" @onclick="CerrarFormulario">
-        <div class="modern-modal-box" @onclick:stopPropagation>
+        <div class="modern-modal-box" role="dialog" aria-modal="true" aria-labelledby="nuevo-usuario-titulo" @onclick:stopPropagation>
             <div class="modal-header">
-                <h3>Nuevo Usuario</h3>
-                <button class="close-btn" @onclick="CerrarFormulario">&times;</button>
+                <h3 id="nuevo-usuario-titulo">Nuevo Usuario</h3>
+                <button type="button" class="close-btn" aria-label="Cerrar formulario" @onclick="CerrarFormulario">&times;</button>
             </div>
             <EditForm Model="NuevoUsuario" OnValidSubmit="GuardarUsuario">
                 <DataAnnotationsValidator />
                 <div class="modal-body">
-                    <div class="input-group">
-                        <label>Nombre de Usuario</label>
-                        <InputText class="modern-input" @bind-Value="NuevoUsuario.NombreUsuario" placeholder="Ej. juan.perez" />
+                    <div class="user-form-field">
+                        <label for="nuevo-usuario-nombre">Nombre de Usuario</label>
+                        <InputText id="nuevo-usuario-nombre" class="modern-input" @bind-Value="NuevoUsuario.NombreUsuario" placeholder="Ej. juan.perez" />
+                        <ValidationMessage For="@(() => NuevoUsuario.NombreUsuario)" />
                     </div>
-                    <div class="input-group">
-                        <label>Contraseña</label>
+                    <div class="user-form-field">
+                        <label for="nuevo-usuario-contrasena">Contraseña</label>
                         <div class="pass-wrapper">
-                            <InputText type="@(_mostrarPassword ? "text" : "password")" class="modern-input" @bind-Value="NuevoUsuario.password" placeholder="********" />
-                            <button type="button" class="eye-btn" @onclick="AlternarVisibilidad">
+                            <InputText id="nuevo-usuario-contrasena" type="@(_mostrarPassword ? "text" : "password")" class="modern-input" @bind-Value="NuevoUsuario.password" placeholder="********" autocomplete="new-password" />
+                            <button type="button" class="eye-btn" aria-label="@(_mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña")" @onclick="AlternarVisibilidad">
                                 <MudIcon Icon="@(_mostrarPassword? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Style="width: 20px; height: 20px; flex-shrink: 0;" />
                             </button>
                         </div>
+                        <ValidationMessage For="@(() => NuevoUsuario.password)" />
                     </div>
-                    <div class="input-group">
-                        <label>Rol asignado</label>
-                        <InputSelect class="modern-input" @bind-Value="NuevoUsuario.Rol">
-                            <option value="" disabled selected>Selecciona un rol</option>
+                    <div class="user-form-field">
+                        <label for="nuevo-usuario-rol">Rol asignado</label>
+                        <InputSelect id="nuevo-usuario-rol" class="modern-input" @bind-Value="NuevoUsuario.Rol" required>
+                            <option value="" disabled>Selecciona un rol</option>
                             @foreach (var rol in ListaRoles)
                             {
                                 <option value="@rol">@rol</option>
@@ -161,23 +175,24 @@
 @if (MostrarModalCambioContrasena)
 {
     <div class="modern-modal-backdrop" @onclick="CerrarModalCambioContrasena">
-        <div class="modern-modal-box" @onclick:stopPropagation>
+        <div class="modern-modal-box" role="dialog" aria-modal="true" aria-labelledby="cambio-contrasena-titulo" @onclick:stopPropagation>
             <div class="modal-header">
-                <h3>Nueva Contraseña</h3>
-                <button class="close-btn" @onclick="CerrarModalCambioContrasena">&times;</button>
+                <h3 id="cambio-contrasena-titulo">Nueva Contraseña</h3>
+                <button type="button" class="close-btn" aria-label="Cerrar formulario" @onclick="CerrarModalCambioContrasena">&times;</button>
             </div>
             <EditForm Model="CambioContrasenaModel" OnValidSubmit="GuardarCambioContrasena">
                 <DataAnnotationsValidator />
                 <div class="modal-body">
                     <p class="mb-4 text-muted">Estableciendo nueva clave para <strong>@UsuarioCambioContrasena.NombreUsuario</strong></p>
-                    <div class="input-group">
-                        <label>Nueva contraseña</label>
+                    <div class="user-form-field">
+                        <label for="cambio-contrasena-nueva">Nueva contraseña</label>
                         <div class="pass-wrapper">
-                            <InputText type="@(_mostrarPasswordCambio ? "text" : "password")" class="modern-input" @bind-Value="CambioContrasenaModel.NuevaContrasena" placeholder="********" autocomplete="new-password" />
-                            <button type="button" class="eye-btn" @onclick="() => _mostrarPasswordCambio = !_mostrarPasswordCambio">
+                            <InputText id="cambio-contrasena-nueva" type="@(_mostrarPasswordCambio ? "text" : "password")" class="modern-input" @bind-Value="CambioContrasenaModel.NuevaContrasena" placeholder="********" autocomplete="new-password" />
+                            <button type="button" class="eye-btn" aria-label="@(_mostrarPasswordCambio ? "Ocultar contraseña" : "Mostrar contraseña")" @onclick="() => _mostrarPasswordCambio = !_mostrarPasswordCambio">
                                 <MudIcon Icon="@(_mostrarPasswordCambio? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Style="width: 20px; height: 20px; flex-shrink: 0;" />
                             </button>
                         </div>
+                        <ValidationMessage For="@(() => CambioContrasenaModel.NuevaContrasena)" />
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -188,6 +203,7 @@
         </div>
     </div>
 }
+</div>
 
 @code {
     public class CambioContrasenaModelClass
@@ -221,6 +237,8 @@
 
     List<UsuariosDTO>? ListaUsuarios = null;
     private List<UsuariosDTO> UsuariosFiltrados = new();
+    private bool cargandoInicial = true;
+    private string errorCargaInicial = string.Empty;
 
     // CORRECCIÓN CS9035: Inicialización correcta de propiedades Required
     private UsuariosDTO NuevoUsuario = new UsuariosDTO
@@ -241,10 +259,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        EsAdministrador = authenticationState.User.IsInRole("ADMINISTRADOR");
-        ListaUsuarios = await UsuarioService.Lista_Usuarios();
-        UsuariosFiltrados = new List<UsuariosDTO>(ListaUsuarios.OrderByDescending(e => e.Id));
+        try
+        {
+            var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            EsAdministrador = authenticationState.User.IsInRole("ADMINISTRADOR");
+            ListaUsuarios = await UsuarioService.Lista_Usuarios();
+            UsuariosFiltrados = new List<UsuariosDTO>(ListaUsuarios.OrderByDescending(e => e.Id));
+        }
+        catch (Exception ex)
+        {
+            errorCargaInicial = $"No fue posible cargar los usuarios: {ex.Message}";
+        }
+        finally
+        {
+            cargandoInicial = false;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

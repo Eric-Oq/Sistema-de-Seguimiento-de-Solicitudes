@@ -1,0 +1,20 @@
+@for (var row = 0; row < Rows; row++)
+{
+    <tr>
+        @for (var column = 0; column < Columns; column++)
+        {
+            <td class="skeleton-table-cell">
+                @if (row == 0 && column == 0)
+                {
+                    <span class="sr-only" role="status">Cargando información...</span>
+                }
+                <span class="skeleton-bar" aria-hidden="true"></span>
+            </td>
+        }
+    </tr>
+}
+
+@code {
+    [Parameter] public int Columns { get; set; }
+    [Parameter] public int Rows { get; set; } = 5;
+}

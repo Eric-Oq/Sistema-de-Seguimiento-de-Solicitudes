@@ -11,6 +11,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AppMessageService Messages
 
 <PageTitle>Seguimiento de solicitudes</PageTitle>
 
@@ -20,6 +21,16 @@
 
 <div class="ss-page-resources w-full max-w-none space-y-6 p-4 xl:p-6 motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms]">
 
+    @if (cargandoInicial || cargandoEdicion)
+    {
+        <LoadingContent Sections="4" Fields="4" />
+    }
+    else if (!string.IsNullOrEmpty(errorCargaInicial))
+    {
+        <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700">@errorCargaInicial</div>
+    }
+    else
+    {
     <!-- ENCABEZADO Y ACCIONES PRINCIPALES -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
@@ -271,11 +282,11 @@
                 <!-- ENCABEZADO -->
                 <div class="border-b border-slate-200 pb-3 flex items-center justify-between">
                     <div>
-                        <h2 class="text-base font-bold text-slate-800">Carga y Gestión de Documentos</h2>
+                        <h2 class="text-base font-bold text-brand-900">Carga y Gestión de Documentos</h2>
                         <p class="text-xs text-slate-500">Expediente digital y constancias asociadas</p>
                     </div>
                     <div>
-                        <span class="text-xs font-bold px-2.5 py-1 rounded border @(modelo.IdExpediente == 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-brand-50 text-brand-700 border-brand-200")">
+                        <span class="text-xs font-bold px-2.5 py-1 rounded border bg-brand-50 text-brand-700 border-brand-200">
                             RECURSO: @(string.IsNullOrWhiteSpace(modelo.NumeroRecurso) ? "Sin guardar" : modelo.NumeroRecurso)
                         </span>
                     </div>
@@ -284,13 +295,13 @@
                 @if (modelo.IdExpediente == 0)
                 {
                     <!-- MENSAJE DE APARTADO BLOQUEADO -->
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800">
-                        <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-xl shrink-0">
-                            <SvgIcon Name="lock" CssClass="h-5 w-5 text-amber-700" />
+                    <div class="bg-brand-50 border border-brand-200 rounded-xl p-4 flex items-center gap-3 text-brand-800">
+                        <div class="h-10 w-10 rounded-lg bg-brand-100 flex items-center justify-center text-xl shrink-0">
+                            <SvgIcon Name="lock" CssClass="h-5 w-5 text-brand-700" />
                         </div>
                         <div>
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900">Apartado Bloqueado</h4>
-                            <p class="text-xs text-amber-700 mt-0.5">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-brand-900">Apartado Bloqueado</h4>
+                            <p class="text-xs text-brand-700 mt-0.5">
                                 Para habilitar la carga de documentos, primero debes guardar los datos principales del expediente en la parte superior.
                             </p>
                         </div>
@@ -364,7 +375,7 @@
                 <!-- TABLA DE DOCUMENTOS DEL RECURSO -->
                 <div class="overflow-x-auto border border-slate-200 rounded-lg">
                     <table class="w-full text-left text-xs divide-y divide-slate-200">
-                        <thead class="bg-[#1E3A5F] text-white font-semibold">
+                        <thead class="bg-brand-900 text-white font-semibold">
                             <tr>
                                 <th class="px-4 py-3">Tipo de documento</th>
                                 <th class="px-4 py-3">Nombre del archivo</th>
@@ -374,7 +385,11 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200 bg-white text-slate-700">
-                            @if (!documentosGuardados.Any())
+                            @if (!string.IsNullOrEmpty(errorDocumentos))
+                            {
+                                <tr><td colspan="5" class="text-center py-6 text-rose-700" role="alert">@errorDocumentos</td></tr>
+                            }
+                            else if (!documentosGuardados.Any())
                             {
                                 <tr>
                                     <td colspan="5" class="text-center py-6 text-slate-400 italic">
@@ -429,20 +444,20 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
 
                     <div class="border-b border-slate-200 pb-3">
-                        <h2 class="text-base font-bold text-slate-800">Bitácora de Actuaciones</h2>
+                        <h2 class="text-base font-bold text-brand-900">Bitácora de Actuaciones</h2>
                         <p class="text-xs text-slate-500">Historial cronológico de acuerdos y movimientos procesales</p>
                     </div>
 
                     @if (modelo.IdExpediente == 0)
                     {
                         <!-- MENSAJE DE APARTADO BLOQUEADO -->
-                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800">
-                            <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-xl shrink-0">
-                                <SvgIcon Name="lock" CssClass="h-5 w-5 text-amber-700" />
+                        <div class="bg-brand-50 border border-brand-200 rounded-xl p-4 flex items-center gap-3 text-brand-800">
+                            <div class="h-10 w-10 rounded-lg bg-brand-100 flex items-center justify-center text-xl shrink-0">
+                                <SvgIcon Name="lock" CssClass="h-5 w-5 text-brand-700" />
                             </div>
                             <div>
-                                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900">Apartado Bloqueado</h4>
-                                <p class="text-xs text-amber-700 mt-0.5">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-brand-900">Apartado Bloqueado</h4>
+                                <p class="text-xs text-brand-700 mt-0.5">
                                     Para registrar acuerdos o actuaciones en la bitácora, primero debes guardar los datos principales del expediente.
                                 </p>
                             </div>
@@ -533,7 +548,7 @@
                     <!-- TABLA DE ACTUACIONES REGISTRADAS -->
                     <div class="overflow-x-auto border border-slate-200 rounded-lg">
                         <table class="w-full text-left text-xs divide-y divide-slate-200">
-                            <thead class="bg-[#1E3A5F] text-white font-semibold">
+                            <thead class="bg-brand-900 text-white font-semibold">
                                 <tr>
                                     <th class="px-4 py-3">Fecha</th>
                                     <th class="px-4 py-3">Actuación</th>
@@ -542,7 +557,11 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 bg-white text-slate-700">
-                                @if (!listaActuaciones.Any())
+                                @if (!string.IsNullOrEmpty(errorActuaciones))
+                                {
+                                    <tr><td colspan="4" class="text-center py-6 text-rose-700" role="alert">@errorActuaciones</td></tr>
+                                }
+                                else if (!listaActuaciones.Any())
                                 {
                                     <tr>
                                         <td colspan="4" class="text-center py-6 text-slate-400 italic">
@@ -649,6 +668,7 @@
             </table>
         </div>
     </div>
+    }
     <script>
         window.scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
     </script>
@@ -657,6 +677,11 @@
 @code {
     private ExpedienteRevisionDTO modelo = new ExpedienteRevisionDTO();
     private List<ExpedienteRevisionDTO> listaExpedientes = new();
+    private bool cargandoInicial = true;
+    private bool cargandoEdicion;
+    private string errorCargaInicial = string.Empty;
+    private string errorDocumentos = string.Empty;
+    private string errorActuaciones = string.Empty;
     private bool EsSoloConsulta;
     private bool EsAdministrador;
 
@@ -729,18 +754,24 @@
         {
             var expSeleccionado = listaExpedientes.FirstOrDefault(x => x.IdExpediente == IdExpedienteUrl.Value);
             if (expSeleccionado != null)
-                await CargarParaEditar(expSeleccionado);
+                await CargarParaEditar(expSeleccionado, false);
             else
             {
                 try
                 {
                     var expRescatado = await Http.GetFromJsonAsync<ExpedienteRevisionDTO>($"api/RecursoRevision/Expediente/{IdExpedienteUrl.Value}");
                     if (expRescatado != null && expRescatado.IdExpediente > 0)
-                        await CargarParaEditar(expRescatado);
+                        await CargarParaEditar(expRescatado, false);
+                    else
+                        errorCargaInicial = "No se encontró el expediente solicitado.";
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    errorCargaInicial = $"No fue posible cargar el expediente: {ex.Message}";
+                }
             }
         }
+        cargandoInicial = false;
     }
 
     private void CerrarAlerta()
@@ -757,7 +788,10 @@
             var res = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>("api/RecursoRevision/Expediente/Lista");
             if (res != null) listaExpedientes = res;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            errorCargaInicial = $"No fue posible cargar los expedientes: {ex.Message}";
+        }
     }
 
     private async Task GuardarOActualizar()
@@ -815,8 +849,11 @@
         }
     }
 
-    private async Task CargarParaEditar(ExpedienteRevisionDTO exp)
+    private async Task CargarParaEditar(ExpedienteRevisionDTO exp, bool desplazar = true)
     {
+        cargandoEdicion = true;
+        try
+        {
         modelo = JsonSerializer.Deserialize<ExpedienteRevisionDTO>(JsonSerializer.Serialize(exp)) ?? new ExpedienteRevisionDTO();
         modeloOriginalJson = JsonSerializer.Serialize(modelo);
         archivosModificados = false;
@@ -829,12 +866,18 @@
         await CargarBitacora(exp.IdExpediente);
 
         MostrarMensaje($"Expediente {exp.NumeroRecurso} cargado.", "success");
-        await JS.InvokeVoidAsync("scrollToTop");
+        if (desplazar)
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+        finally
+        {
+            cargandoEdicion = false;
+        }
     }
 
     private async Task EliminarExpediente(ExpedienteRevisionDTO exp)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar el expediente '{exp.NumeroRecurso}'?")) return;
+        if (!await Messages.ConfirmAsync($"¿Eliminar el expediente '{exp.NumeroRecurso}'?", "Sí, eliminar")) return;
 
         try
         {
@@ -859,7 +902,7 @@
             return;
         }
 
-        bool confirmar = await JS.InvokeAsync<bool>("confirm", modelo.IdExpediente == 0 ? "¿Limpiar formulario?" : "¿Cancelar edición?");
+        bool confirmar = await Messages.ConfirmAsync(modelo.IdExpediente == 0 ? "¿Limpiar formulario?" : "¿Cancelar edición?", "Sí, continuar");
         if (confirmar)
         {
             bool eraEdicion = modelo.IdExpediente > 0;
@@ -872,6 +915,8 @@
     {
         modelo = new ExpedienteRevisionDTO();
         modeloOriginalJson = string.Empty;
+        errorDocumentos = string.Empty;
+        errorActuaciones = string.Empty;
 
         // Reset de PDFs (Punto 1)
         documentosGuardados.Clear();
@@ -922,8 +967,13 @@
     // MÉTODOS DE GESTIÓN DOCUMENTAL DE PDFS Y METADATOS
     private async Task CargarDocumentosDelExpediente(int idExpediente)
     {
+        errorDocumentos = string.Empty;
         try { documentosGuardados = await Http.GetFromJsonAsync<List<ArchivoExpedienteDTO>>($"api/RecursoRevision/Expediente/{idExpediente}/PDFs") ?? new(); }
-        catch { documentosGuardados = new(); }
+        catch (Exception ex)
+        {
+            documentosGuardados = new();
+            errorDocumentos = $"No fue posible cargar los documentos: {ex.Message}";
+        }
     }
 
     private void OnArchivoSeleccionado(InputFileChangeEventArgs e)
@@ -979,7 +1029,7 @@
                 await CargarDocumentosDelExpediente(modelo.IdExpediente);
 
                 var expEnLista = listaExpedientes.FirstOrDefault(x => x.IdExpediente == modelo.IdExpediente);
-                if (expEnLista != null) { expEnLista.TotalDocumentos = documentosGuardados.Count; }
+                if (expEnLista != null && string.IsNullOrEmpty(errorDocumentos)) { expEnLista.TotalDocumentos = documentosGuardados.Count; }
 
                 MostrarMensajeDoc($"Documento guardado exitosamente en el expediente {modelo.NumeroRecurso}.", true);
             }
@@ -1002,7 +1052,7 @@
     // Eliminar Documento PDF
     private async Task EliminarDocumentoPDF(int idArchivo, string nombreArchivo)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"¿Deseas eliminar el documento '{nombreArchivo}'?")) return;
+        if (!await Messages.ConfirmAsync($"¿Deseas eliminar el documento '{nombreArchivo}'?", "Sí, eliminar")) return;
 
         try
         {
@@ -1014,7 +1064,7 @@
 
                 // SOLUCIÓN AL PUNTO 4: Actualiza contador sin recargar toda la tabla
                 var expEnLista = listaExpedientes.FirstOrDefault(x => x.IdExpediente == modelo.IdExpediente);
-                if (expEnLista != null) { expEnLista.TotalDocumentos = documentosGuardados.Count; }
+                if (expEnLista != null && string.IsNullOrEmpty(errorDocumentos)) { expEnLista.TotalDocumentos = documentosGuardados.Count; }
 
                 MostrarMensajeDoc($"Documento '{nombreArchivo}' eliminado correctamente.", true);
             }
@@ -1041,7 +1091,7 @@
             var bytes = await Http.GetByteArrayAsync($"api/RecursoRevision/Expediente/PDF/{idArchivo}");
             await JS.InvokeVoidAsync("downloadFileFromByteArray", new { ByteArray = bytes, FileName = nombreArchivo, ContentType = "application/pdf" });
         }
-        catch (Exception ex) { await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}"); }
+        catch (Exception ex) { await Messages.ErrorAsync($"Error: {ex.Message}"); }
     }
 
     // Temporizador local de 5 segundos para Alertas de PDFs
@@ -1071,7 +1121,7 @@
     {
         if (HayCambios)
         {
-            var isConfirmed = await JS.InvokeAsync<bool>("confirm", "Tienes cambios sin guardar. ¿Estás seguro de que deseas salir y cancelar la edición?");
+            var isConfirmed = await Messages.ConfirmAsync("Tienes cambios sin guardar. ¿Estás seguro de que deseas salir y cancelar la edición?", "Sí, salir");
             if (!isConfirmed)
             {
                 context.PreventNavigation();
@@ -1081,6 +1131,7 @@
 
     private async Task CargarBitacora(int idExpediente)
     {
+        errorActuaciones = string.Empty;
         if (idExpediente <= 0)
         {
             listaActuaciones.Clear();
@@ -1092,9 +1143,10 @@
             var res = await Http.GetFromJsonAsync<List<BitacoraActuacionDTO>>($"api/RecursoRevision/Expediente/{idExpediente}/Bitacora");
             listaActuaciones = res ?? new();
         }
-        catch
+        catch (Exception ex)
         {
             listaActuaciones.Clear();
+            errorActuaciones = $"No fue posible cargar la bitácora: {ex.Message}";
         }
     }
 

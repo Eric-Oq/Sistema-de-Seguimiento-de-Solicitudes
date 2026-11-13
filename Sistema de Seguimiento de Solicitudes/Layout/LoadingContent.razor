@@ -1,0 +1,25 @@
+<div class="skeleton-content skeleton-@Variant" role="status" aria-label="Cargando información" aria-busy="true">
+    <div class="skeleton-layout" aria-hidden="true">
+        @for (var section = 0; section < Sections; section++)
+        {
+            <div class="skeleton-section">
+                <span class="skeleton-bar skeleton-heading"></span>
+                <div class="skeleton-fields">
+                    @for (var field = 0; field < Fields; field++)
+                    {
+                        <div>
+                            <span class="skeleton-bar skeleton-label"></span>
+                            <span class="skeleton-bar skeleton-field"></span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Variant { get; set; } = "form";
+    [Parameter] public int Sections { get; set; } = 2;
+    [Parameter] public int Fields { get; set; } = 4;
+}

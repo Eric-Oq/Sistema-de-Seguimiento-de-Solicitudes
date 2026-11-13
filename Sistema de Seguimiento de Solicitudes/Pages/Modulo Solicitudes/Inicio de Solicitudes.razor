@@ -27,11 +27,21 @@
         </div>
     </div>
 
+    @if (cargandoInicial)
+    {
+        <LoadingContent Variant="dashboard" Sections="4" Fields="1" />
+    }
+    else if (!string.IsNullOrEmpty(errorCargaInicial))
+    {
+        <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700">@errorCargaInicial</div>
+    }
+    else
+    {
     <div class="dashboard-container">
         <MudGrid Spacing="4" Justify="Justify.Center">
 
             <MudItem xs="12" sm="6" md="3">
-                <div class="status-card border-slate @(isVisible[4] ? "active" : "")" @onclick="@(() => ToggleVisibility(4))">
+                <button type="button" class="status-card border-slate @(selectedStatus == 4 ? "active" : "")" aria-expanded="@(selectedStatus == 4 ? "true" : "false")" @onclick="@(() => ToggleVisibility(4))">
                     <div class="card-icon bg-slate-light icon-slate">
                         <MudIcon Icon="@Icons.Material.Filled.HistoryToggleOff" />
                     </div>
@@ -39,33 +49,33 @@
                         <span class="count-text text-slate">@solicitudesGrises.Count</span>
                         <span class="status-label">Vencidas</span>
                     </div>
-                    <MudIcon Icon="@(isVisible[4] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
-                </div>
-                @if (isVisible[4])
+                    <MudIcon Icon="@(selectedStatus == 4 ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </button>
+                @if (selectedStatus == 4)
                 {
                     <div class="list-dropdown">@RenderList(solicitudesGrises, "slate")</div>
                 }
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <div class="status-card border-rose @(isVisible[2] ? "active" : "")" @onclick="@(() => ToggleVisibility(2))">
-                    <div class="card-icon bg-rose-light icon-rose pulse-animation">
+                <button type="button" class="status-card border-rose @(selectedStatus == 2 ? "active" : "")" aria-expanded="@(selectedStatus == 2 ? "true" : "false")" @onclick="@(() => ToggleVisibility(2))">
+                    <div class="card-icon bg-rose-light icon-rose">
                         <MudIcon Icon="@Icons.Material.Filled.CrisisAlert" />
                     </div>
                     <div class="card-info">
                         <span class="count-text text-rose">@solicitudesRojas.Count</span>
                         <span class="status-label">Menos de 2 días</span>
                     </div>
-                    <MudIcon Icon="@(isVisible[2] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
-                </div>
-                @if (isVisible[2])
+                    <MudIcon Icon="@(selectedStatus == 2 ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </button>
+                @if (selectedStatus == 2)
                 {
                     <div class="list-dropdown">@RenderList(solicitudesRojas, "rose")</div>
                 }
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <div class="status-card border-amber @(isVisible[1] ? "active" : "")" @onclick="@(() => ToggleVisibility(1))">
+                <button type="button" class="status-card border-amber @(selectedStatus == 1 ? "active" : "")" aria-expanded="@(selectedStatus == 1 ? "true" : "false")" @onclick="@(() => ToggleVisibility(1))">
                     <div class="card-icon bg-amber-light icon-amber">
                         <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" />
                     </div>
@@ -73,16 +83,16 @@
                         <span class="count-text text-amber">@solicitudesAmarillas.Count</span>
                         <span class="status-label">Menos de 5 días</span>
                     </div>
-                    <MudIcon Icon="@(isVisible[1] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
-                </div>
-                @if (isVisible[1])
+                    <MudIcon Icon="@(selectedStatus == 1 ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </button>
+                @if (selectedStatus == 1)
                 {
                     <div class="list-dropdown">@RenderList(solicitudesAmarillas, "amber")</div>
                 }
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <div class="status-card border-emerald @(isVisible[0] ? "active" : "")" @onclick="@(() => ToggleVisibility(0))">
+                <button type="button" class="status-card border-emerald @(selectedStatus == 0 ? "active" : "")" aria-expanded="@(selectedStatus == 0 ? "true" : "false")" @onclick="@(() => ToggleVisibility(0))">
                     <div class="card-icon bg-emerald-light icon-emerald">
                         <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
                     </div>
@@ -90,9 +100,9 @@
                         <span class="count-text text-emerald">@solicitudesVerdes.Count</span>
                         <span class="status-label">Mayor a 6 días</span>
                     </div>
-                    <MudIcon Icon="@(isVisible[0] ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
-                </div>
-                @if (isVisible[0])
+                    <MudIcon Icon="@(selectedStatus == 0 ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Class="expand-icon" />
+                </button>
+                @if (selectedStatus == 0)
                 {
                     <div class="list-dropdown">@RenderList(solicitudesVerdes, "emerald")</div>
                 }
@@ -100,6 +110,7 @@
 
         </MudGrid>
     </div>
+    }
 </div>
 
 @code {
@@ -153,7 +164,9 @@
         </div>
     };
 
-    private bool[] isVisible = new bool[5];
+    private int? selectedStatus;
+    private bool cargandoInicial = true;
+    private string errorCargaInicial = string.Empty;
     private List<Expediente> solicitudesGrises = new();
     private List<Expediente> solicitudesRojas = new();
     private List<Expediente> solicitudesAmarillas = new();
@@ -163,8 +176,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        listaExpedientes = await ExpedienteService.Lista();
-        ClasificarSolicitudes();
+        try
+        {
+            listaExpedientes = await ExpedienteService.Lista();
+            ClasificarSolicitudes();
+        }
+        catch (Exception ex)
+        {
+            errorCargaInicial = $"No fue posible cargar las solicitudes: {ex.Message}";
+        }
+        finally
+        {
+            cargandoInicial = false;
+        }
     }
 
     private void ClasificarSolicitudes()
@@ -204,7 +228,7 @@
         return (fechaVencimiento.Date - DateTime.Now.Date).Days;
     }
 
-    private void ToggleVisibility(int index) => isVisible[index] = !isVisible[index];
+    private void ToggleVisibility(int index) => selectedStatus = selectedStatus == index ? null : index;
 
     private void RedirigirADetalles(int id)
     {

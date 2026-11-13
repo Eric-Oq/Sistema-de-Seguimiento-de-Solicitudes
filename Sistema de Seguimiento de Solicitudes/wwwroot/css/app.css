@@ -8,7 +8,6 @@ body {
 
 .module-main,
 .page > main {
-    min-height: 100vh;
     background:
         radial-gradient(ellipse at 12% 12%, rgba(132, 50, 79, 0.08), transparent 36%),
         linear-gradient(135deg, #f8f6f4 0%, #f6edf0 52%, #f1e9e9 100%);
@@ -17,6 +16,12 @@ body {
 .module-content,
 .layout-content {
     background: transparent;
+}
+
+.module-main:has(.index-modal-open),
+.module-main:has(.users-modal-open) {
+    position: relative;
+    z-index: 40;
 }
  
 h1:focus {

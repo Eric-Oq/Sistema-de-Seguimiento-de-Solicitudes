@@ -14,6 +14,7 @@
 @inject IJSRuntime JS
 @inject ILogger<RecursoRevisionBusqueda> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AppMessageService Messages
 
 
 <PageTitle>Seguimiento de solicitudes</PageTitle>
@@ -28,8 +29,9 @@
         </div>
         <div class ="flex items-center gap-3">
             <!-- BOTÓN EXPORTAR EXCEL -->
-            <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-2"
-                    @onclick="ExportarAExcel" disabled="@(!resultados.Any())">
+            <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    @onclick="ExportarAExcel" disabled="@(!resultados.Any())"
+                    title="@(resultados.Any() ? "Exportar resultados a Excel" : "No hay resultados para exportar")">
                 <SvgIcon Name="chart" CssClass="h-4 w-4" />
                 Exportar Excel
             </button>            
@@ -168,14 +170,14 @@
                         <th class="px-3 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 text-slate-700">
+                <tbody class="divide-y divide-slate-200 text-slate-700" aria-busy="@buscando">
                     @if (buscando && !resultados.Any())
                     {
-                        <tr>
-                            <td colspan="8" class="text-center py-8 text-slate-400">
-                                Buscando expedientes en el sistema...
-                            </td>
-                        </tr>
+                        <LoadingTableRows Columns="8" />
+                    }
+                    else if (!string.IsNullOrEmpty(errorBusqueda))
+                    {
+                        <tr><td colspan="8" class="text-center py-8 text-rose-700">@errorBusqueda</td></tr>
                     }
                     else if (!resultados.Any())
                     {
@@ -265,7 +267,9 @@
     private string filtroResolucion = string.Empty;
     private int limiteRegistros = 10;
 
-    private bool buscando = false;
+    private bool buscando = true;
+    private string errorBusqueda = string.Empty;
+    private int versionBusqueda;
     private bool EsSoloConsulta;
     private bool EsAdministrador;
 
@@ -306,6 +310,9 @@
 
     private void TriggerBusqueda()
     {
+        versionBusqueda++;
+        buscando = true;
+        errorBusqueda = string.Empty;
         cts?.Cancel();
         cts = new CancellationTokenSource();
         var token = cts.Token;
@@ -341,8 +348,8 @@
     private async Task EliminarExpedienteDesdeBusqueda(ExpedienteRevisionDTO exp)
     {
         // 1. Pedir confirmación al usuario
-        bool confirmar = await JS.InvokeAsync<bool>("confirm",
-            $"¿Estás seguro de eliminar el expediente '{exp.NumeroRecurso}' (Folio: {exp.FolioSolicitud}) y todos sus documentos vinculados? Esta acción no se puede deshacer.");
+        bool confirmar = await Messages.ConfirmAsync(
+            $"¿Estás seguro de eliminar el expediente '{exp.NumeroRecurso}' (Folio: {exp.FolioSolicitud}) y todos sus documentos vinculados? Esta acción no se puede deshacer.", "Sí, eliminar");
 
         if (!confirmar) return;
 
@@ -357,17 +364,16 @@
                 resultados.Remove(exp);
                 StateHasChanged();
 
-                // Mostrar alerta nativa rápida de éxito
-                await JS.InvokeVoidAsync("alert", $"Expediente {exp.NumeroRecurso} eliminado exitosamente.");
+                await Messages.SuccessAsync($"Expediente {exp.NumeroRecurso} eliminado exitosamente.");
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", "No fue posible eliminar el expediente de la base de datos.");
+                await Messages.ErrorAsync("No fue posible eliminar el expediente de la base de datos.");
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al eliminar expediente: {ex.Message}");
+            await Messages.ErrorAsync($"Error al eliminar expediente: {ex.Message}");
         }
     }
 
@@ -387,7 +393,9 @@
 
     private async Task EjecutarBusquedaAPI()
     {
+        var version = ++versionBusqueda;
         buscando = true;
+        errorBusqueda = string.Empty;
         StateHasChanged();
 
         try
@@ -395,17 +403,25 @@
             // SE AGREGA EL LÍMITE A LA URL
             var url = $"api/RecursoRevision/Expediente/Buscar?criterio={Uri.EscapeDataString(terminoBusqueda)}&estatus={Uri.EscapeDataString(filtroEstatus)}&materia={Uri.EscapeDataString(filtroMateria)}&resolucion={Uri.EscapeDataString(filtroResolucion)}&limite={limiteRegistros}";
             var res = await Http.GetFromJsonAsync<List<ExpedienteRevisionDTO>>(url);
-            resultados = res ?? new();
+            if (version == versionBusqueda)
+                resultados = res ?? new();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error al buscar expedientes de recursos de revisión.");
-            resultados = new();
+            if (version == versionBusqueda)
+            {
+                resultados = new();
+                errorBusqueda = "No fue posible consultar los expedientes. Inténtalo nuevamente.";
+            }
         }
         finally
         {
-            buscando = false;
-            StateHasChanged();
+            if (version == versionBusqueda)
+            {
+                buscando = false;
+                StateHasChanged();
+            }
         }
     }
 
@@ -463,7 +479,7 @@
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al exportar a Excel: {ex.Message}");
+            await Messages.ErrorAsync($"Error al exportar a Excel: {ex.Message}");
         }
     }
 
@@ -491,13 +507,13 @@
             {
                 // Extraemos el error real del servidor para saber por qué falla QuestPDF
                 var errorBackend = await resp.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"El servidor rechazó generar el PDF. Revisa la consola para más detalles.");
+                await Messages.ErrorAsync("El servidor rechazó generar el PDF. Revisa la consola para más detalles.");
                 await JS.InvokeVoidAsync("console.error", "Error detallado del PDF:", errorBackend);
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error de comunicación: {ex.Message}");
+            await Messages.ErrorAsync($"Error de comunicación: {ex.Message}");
         }
     }
 }

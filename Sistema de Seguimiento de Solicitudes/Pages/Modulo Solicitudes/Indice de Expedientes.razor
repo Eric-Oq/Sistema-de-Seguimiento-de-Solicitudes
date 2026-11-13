@@ -17,10 +17,11 @@
 @inject IJSRuntime JSRuntime
 @inject IExpedienteService ExpedienteService
 @inject ICalendarioService CalendarioService
+@inject AppMessageService Messages
 
 <PageTitle>Seguimiento de solicitudes</PageTitle>
 
-<div class="page-container ss-page-index motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms]">
+<div class="page-container ss-page-index motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms] @((MostrarFormularioModal || MostrarContenidoModal) ? "index-modal-open" : "")">
 
     <div class="header-flex">
         <h2 class="page-title">Consulta de Solicitudes</h2>
@@ -36,12 +37,12 @@
     <div class="search-bar-wrapper">
         <div class="search-container">
             <MudIcon Icon="@Icons.Material.Filled.Search" Style="width: 20px; height: 20px; flex-shrink: 0; position: absolute; left: 16px; top: 12px; color: #94a3b8;" />
-            <input type="text" class="search-input" placeholder="Buscar por nombre, folio, contenido, fecha, año..." @bind="Filtro" @bind:event="oninput" />
+            <input type="text" class="search-input" placeholder="Buscar por nombre, folio, contenido, fecha, año..." @bind="Filtro" @bind:event="oninput" disabled="@cargandoInicial" />
         </div>
     </div>
 
     <div class="table-card">
-        <div style="overflow-x: auto;">
+        <div class="index-table-scroll" role="region" aria-label="Tabla de solicitudes" tabindex="0">
             <table class="modern-table">
                 <thead>
                     <tr>
@@ -54,16 +55,24 @@
                         <th style="max-width: 350px;">Contenido de la Solicitud</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @if (ExpedientesFiltrados != null && ExpedientesFiltrados.Any())
+                <tbody aria-busy="@cargandoInicial">
+                    @if (cargandoInicial)
+                    {
+                        <LoadingTableRows Columns="7" />
+                    }
+                    else if (!string.IsNullOrEmpty(errorCargaInicial))
+                    {
+                        <tr>
+                            <td colspan="7" role="alert" class="empty-state text-rose-700">@errorCargaInicial</td>
+                        </tr>
+                    }
+                    else if (ExpedientesFiltrados != null && ExpedientesFiltrados.Any())
                     {
                         @foreach (var expediente in PagedExpedientes)
                         {
                             <tr>
                                 <td style="text-align: center;">
-                                    <button class="btn-view-circle" @onclick="() => VerDetalle(expediente.Id)" title="Ver detalles">
-                                        <MudIcon Icon="@Icons.Material.Filled.Visibility" Style="width: 18px; height: 18px; flex-shrink: 0;" />
-                                    </button>
+                                    <DetailViewButton @key="expediente.Id" CssClass="btn-view-circle" Title="Ver detalles" OnClick="@(() => VerDetalle(expediente.Id))" />
                                 </td>
                                 <td class="text-id">#@expediente.Id</td>
                                 <td class="text-folio">@expediente.Folio</td>
@@ -99,29 +108,28 @@
 
         @if (ExpedientesFiltrados != null && ExpedientesFiltrados.Any())
         {
-            <div class="pagination-container">
-                <button class="btn-pag" @onclick="PrevPage" disabled="@(currentPage <= 1)">
-                    <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Style="width: 20px; height: 20px; flex-shrink: 0;" />
-                </button>
-                <div class="page-numbers">
-                    Página <span>@currentPage</span> de @totalPages
+            <div class="pagination-footer">
+                <div class="pagination-info">Mostrando @PagedExpedientes.Count() de @ExpedientesFiltrados.Count registros</div>
+                <div class="pagination-controls">
+                    <button type="button" class="btn-pag-small" aria-label="Página anterior" title="Página anterior" @onclick="PrevPage" disabled="@(currentPage <= 1)">
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                    </button>
+                    <div class="page-text">Página <span>@currentPage</span> de @totalPages</div>
+                    <button type="button" class="btn-pag-small" aria-label="Página siguiente" title="Página siguiente" @onclick="NextPage" disabled="@(currentPage >= totalPages)">
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+                    </button>
                 </div>
-                <button class="btn-pag" @onclick="NextPage" disabled="@(currentPage >= totalPages)">
-                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="width: 20px; height: 20px; flex-shrink: 0;" />
-                </button>
             </div>
         }
     </div>
-</div>
-
 <!-- ================= MODAL DE REGISTRO (GRANDE) ================= -->
 @if (MostrarFormularioModal)
 {
     <div class="modern-modal-backdrop" @onclick="CerrarFormulario">
-        <div class="modern-modal-box large-modal" @onclick:stopPropagation>
+        <div class="modern-modal-box large-modal" role="dialog" aria-modal="true" aria-labelledby="registro-modal-title" @onclick:stopPropagation>
             <div class="modal-header">
-                <h3>Registrar Nuevo Expediente</h3>
-                <button class="close-btn" @onclick="CerrarFormulario">&times;</button>
+                <h3 id="registro-modal-title">Registrar Nuevo Expediente</h3>
+                <button type="button" class="close-btn" aria-label="Cerrar formulario" @onclick="CerrarFormulario">&times;</button>
             </div>
 <EditForm Model="NuevoExpedienteVM" OnSubmit="GuardarExpediente">
                 <!-- Quitamos el DataAnnotationsValidator para que no bloquee los campos ocultos -->
@@ -619,17 +627,20 @@
 }
 
 <!-- ================= MODAL LECTURA CONTENIDO ================= -->
-<div id="myModal" class="modern-modal-backdrop" style="display: none;" @onclick="CloseModal">
-    <div class="modern-modal-box content-modal" @onclick:stopPropagation>
-        <div class="modal-header">
-            <h3>Contenido Completo de la Solicitud</h3>
-            <button class="close-btn" @onclick="CloseModal">&times;</button>
-        </div>
-        <div class="modal-body-scroll">
-            <p>@modalContenido</p>
+@if (MostrarContenidoModal)
+{
+    <div class="modern-modal-backdrop" @onclick="CloseModal">
+        <div class="modern-modal-box content-modal" role="dialog" aria-modal="true" aria-labelledby="contenido-modal-title" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3 id="contenido-modal-title">Contenido Completo de la Solicitud</h3>
+                <button type="button" class="close-btn" aria-label="Cerrar contenido" @onclick="CloseModal">&times;</button>
+            </div>
+            <div class="modal-body-scroll">
+                <p>@modalContenido</p>
+            </div>
         </div>
     </div>
-</div>
+}
 
 @if (MostrarMensajeError)
 {
@@ -638,6 +649,7 @@
         @MensajeError
     </div>
 }
+</div>
 
 @code {
     // 🔥 ViewModel para el Formulario Idéntico al de Detalles 🔥
@@ -690,6 +702,7 @@
     };
 
     private bool MostrarFormularioModal { get; set; } = false;
+    private bool MostrarContenidoModal { get; set; }
     private string MensajeError { get; set; } = "";
     private bool MostrarMensajeError { get; set; } = false;
     private string modalContenido = "";
@@ -711,6 +724,9 @@
     List<ExpedienteDTO>? listaExpedientes = null;
     private List<ExpedienteDTO> ExpedientesFiltrados { get; set; } = new();
     private bool PuedeCapturar = false;
+    private bool cargandoInicial = true;
+    private string errorCargaInicial = string.Empty;
+    private int versionBusqueda;
     private List<DateTime> DiasInhabiles { get; set; } = new();
 
     private int currentPage = 1;
@@ -733,28 +749,45 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
 
-        PuedeCapturar = user.IsInRole("CAPTURA") || user.IsInRole("SUPERVISIÓN") || user.IsInRole("ADMINISTRADOR");
+            PuedeCapturar = user.IsInRole("CAPTURA") || user.IsInRole("SUPERVISIÓN") || user.IsInRole("ADMINISTRADOR");
 
-        DiasInhabiles = (await CalendarioService.ObtenerDiasInhabiles())
-            .Select(d => d.Fecha.Date)
-            .ToList();
+            DiasInhabiles = (await CalendarioService.ObtenerDiasInhabiles())
+                .Select(d => d.Fecha.Date)
+                .ToList();
 
-        listaExpedientes = await ExpedienteService.Lista();
-        ExpedientesFiltrados = new List<ExpedienteDTO>(listaExpedientes.OrderByDescending(e => e.Id));
+            listaExpedientes = await ExpedienteService.Lista();
+            ExpedientesFiltrados = new List<ExpedienteDTO>(listaExpedientes.OrderByDescending(e => e.Id));
+        }
+        catch (Exception ex)
+        {
+            errorCargaInicial = $"No fue posible cargar las solicitudes: {ex.Message}";
+        }
+        finally
+        {
+            cargandoInicial = false;
+        }
     }
 
     private async Task Buscar()
     {
-        if (!string.IsNullOrWhiteSpace(Filtro))
+        var version = ++versionBusqueda;
+        var filtro = Filtro;
+        if (!string.IsNullOrWhiteSpace(filtro))
         {
-            ExpedientesFiltrados = await ExpedienteService.BuscarPorTexto(Filtro);
+            var resultados = await ExpedienteService.BuscarPorTexto(filtro);
+            if (version != versionBusqueda) return;
+            ExpedientesFiltrados = resultados;
         }
         else
         {
-            listaExpedientes = await ExpedienteService.Lista();
+            var resultados = await ExpedienteService.Lista();
+            if (version != versionBusqueda) return;
+            listaExpedientes = resultados;
             ExpedientesFiltrados = new List<ExpedienteDTO>(listaExpedientes.OrderByDescending(e => e.Id));
         }
         currentPage = 1;
@@ -854,7 +887,7 @@
       if (listaExpedientes!.Any(e => e.Folio == NuevoExpedienteVM.Folio))
         {
             // Solo avisamos, pero al no poner 'return', el código sigue y guarda
-            await JSRuntime.InvokeVoidAsync("alert", "ADVERTENCIA: El número de Folio ya existe en el sistema. Se registrará como un duplicado.");
+            await Messages.WarningAsync("El número de Folio ya existe en el sistema. Se registrará como un duplicado.");
         }
 
         // Mapeo del ViewModel (Expediente) a DataTransferObject (ExpedienteDTO)
@@ -941,15 +974,15 @@
         StateHasChanged();
     }
 
-    private async Task OpenModal(string contenido)
+    private void OpenModal(string contenido)
     {
         modalContenido = contenido;
-        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('myModal').style.display = 'flex';");
+        MostrarContenidoModal = true;
     }
 
-    private async Task CloseModal()
+    private void CloseModal()
     {
-        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('myModal').style.display = 'none';");
+        MostrarContenidoModal = false;
     }
 
     private void PrevPage() { if (currentPage > 1) currentPage--; }

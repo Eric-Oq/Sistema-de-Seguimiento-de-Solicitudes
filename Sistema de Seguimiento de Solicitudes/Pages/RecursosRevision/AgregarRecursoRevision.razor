@@ -9,6 +9,7 @@
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject AppMessageService Messages
 
 <main class="ss-page-resources w-full max-w-none space-y-6 p-4 xl:p-6 motion-safe:motion-preset-fade motion-safe:motion-duration-[650ms]">
     <header class="border-b border-slate-200 pb-4">
@@ -85,18 +86,18 @@
 
             if (respuesta.IsSuccessStatusCode)
             {
-                await JS.InvokeVoidAsync("alert", "Recurso de revisión registrado correctamente.");
+                await Messages.SuccessAsync("Recurso de revisión registrado correctamente.");
                 Navigation.NavigateTo("/menu/recursos-revision");
             }
             else
             {
                 var txt = await respuesta.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"Error al guardar: {respuesta.StatusCode} - {txt}");
+                await Messages.ErrorAsync($"Error al guardar: {respuesta.StatusCode} - {txt}");
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+            await Messages.ErrorAsync($"Error al guardar: {ex.Message}");
         }
     }
 }

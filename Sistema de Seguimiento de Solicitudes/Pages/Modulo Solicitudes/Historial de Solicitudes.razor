@@ -95,16 +95,18 @@
                         <th style="text-align: center;">Estado</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @if (SolicitudesFiltradas.Any())
+                <tbody aria-busy="@cargandoInicial">
+                    @if (cargandoInicial)
+                    {
+                        <LoadingTableRows Columns="8" />
+                    }
+                    else if (SolicitudesFiltradas.Any())
                     {
                         @foreach (var solicitud in PagedExpedientes)
                         {
                             <tr>
                                 <td style="text-align: center;">
-                                    <button class="btn-action-circle" @onclick="() => VerDetalle(solicitud.Id, solicitud.Folio ?? string.Empty)" title="Ver detalles del expediente">
-                                        <MudIcon Icon="@Icons.Material.Filled.Visibility" Style="width: 18px; height: 18px; flex-shrink: 0;" />
-                                    </button>
+                                    <DetailViewButton @key="solicitud.Id" CssClass="btn-action-circle" Title="Ver detalles del expediente" OnClick="@(() => VerDetalle(solicitud.Id, solicitud.Folio ?? string.Empty))" />
                                 </td>
                                 <td class="text-folio">@solicitud.Folio</td>
                                 
@@ -157,11 +159,11 @@
             <div class="pagination-footer">
                 <div class="pagination-info text-muted">Mostrando @PagedExpedientes.Count() de @SolicitudesFiltradas.Count() registros</div>
                 <div class="pagination-controls">
-                    <button class="btn-pag-small" @onclick="PrevPage" disabled="@(currentPage <= 1)" title="Página anterior">
+                    <button type="button" class="btn-pag-small" aria-label="Página anterior" @onclick="PrevPage" disabled="@(currentPage <= 1)" title="Página anterior">
                         <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Style="width: 18px; height: 18px; flex-shrink: 0;" />
                     </button>
                     <div class="page-text">Página <span>@currentPage</span> de @totalPages</div>
-                    <button class="btn-pag-small" @onclick="NextPage" disabled="@(currentPage >= totalPages)" title="Siguiente página">
+                    <button type="button" class="btn-pag-small" aria-label="Página siguiente" @onclick="NextPage" disabled="@(currentPage >= totalPages)" title="Página siguiente">
                         <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Style="width: 18px; height: 18px; flex-shrink: 0;" />
                     </button>
                 </div>
@@ -172,6 +174,7 @@
 
 @code {
     private List<ExpedienteDTO> SolicitudesHistorial = new();
+    private bool cargandoInicial = true;
     private string busqueda = string.Empty;
     private string estadoSeleccionado = string.Empty;
 
@@ -226,6 +229,7 @@
             .Where(e => !string.IsNullOrEmpty(e.Estado) && estadosValidos.Contains(e.Estado.ToUpper()))
             .OrderByDescending(e => e.FechaInicio)
             .ToList();
+        cargandoInicial = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -12,6 +12,7 @@
 @using System.Security.Claims
 
 @inject DialogService DialogService
+@inject AppMessageService Messages
 @inject IExpedienteService ExpedienteService
 @inject ICalendarioService CalendarioService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -41,7 +42,7 @@
                                       Placeholder="Día laborable..."
                                       Class="pro-input shadow-sm" />
 
-                    <button class="btn-action-outline shadow-sm" @onclick="ToggleDiaManual" title="Activar/Desactivar Día" style="height: 42px; width: 42px;">
+                    <button class="btn-action-outline shadow-sm" @onclick="ToggleDiaManual" disabled="@cargandoInicial" title="Activar/Desactivar Día" style="height: 42px; width: 42px;">
                         <i class="bi bi-calendar-x"></i>
                     </button>
                 </div>
@@ -49,13 +50,19 @@
         </div>
 
         <div class="actions-group">
-            <button class="btn-primary-pro" @onclick="MostrarEventosPorVencimiento">
+            <button class="btn-primary-pro" @onclick="MostrarEventosPorVencimiento" disabled="@cargandoInicial">
                 <i class="bi bi-exclamation-triangle-fill nav-icon" style="margin-right: 8px;"></i> Ver Próximos a Vencer
             </button>
         </div>
     </div>
 
     <div class="pro-table-card">
+        @if (cargandoInicial)
+        {
+            <LoadingContent Variant="calendar" Sections="1" Fields="35" />
+        }
+        else
+        {
         <RadzenScheduler @ref="@scheduler"
                          SlotRender="@OnSlotRender"
                          style="height: calc(100vh - 280px); width: 100%; border: none;"
@@ -72,11 +79,13 @@
             <RadzenWeekView />
             <RadzenMonthView />
         </RadzenScheduler>
+        }
     </div>
 </div>
 
 @code {
     RadzenScheduler<EventoSolicitud>? scheduler;
+    private bool cargandoInicial = true;
 
     bool showHeader = true;
 
@@ -137,6 +146,7 @@
             .ToList();
 
         eventos = MapearEventos(expedienteList);
+        cargandoInicial = false;
     }
 
     private List<EventoSolicitud> MapearEventos(List<ExpedienteDTO> expedientes)
@@ -294,12 +304,12 @@
             else
             {
                 // 4. Si falla, ahora te avisará qué folio intentó buscar
-                await JS.InvokeVoidAsync("alert", $"Error: No se encontró en memoria el folio '{folioExtraido}'");
+                await Messages.ErrorAsync($"No se encontró en memoria el folio '{folioExtraido}'.");
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Hubo un problema al abrir el evento: {ex.Message}");
+            await Messages.ErrorAsync($"Hubo un problema al abrir el evento: {ex.Message}");
         }
     }
 

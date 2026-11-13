@@ -39,6 +39,7 @@ builder.Services.AddAuthorizationCore();
 
 
 builder.Services.AddSweetAlert2();
+builder.Services.AddScoped<AppMessageService>();
 
 builder.Services.AddRadzenComponents();
 

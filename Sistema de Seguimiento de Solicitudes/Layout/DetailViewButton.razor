@@ -1,0 +1,66 @@
+@using MudBlazor
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<button @ref="button" type="button" class="@CssClass detail-view-action" title="@Title" aria-label="@Title" aria-busy="@isNavigating.ToString().ToLowerInvariant()" @onclick="HandleClick">
+    <MudIcon Icon="@Icons.Material.Filled.Visibility" Style="width: 18px; height: 18px; flex-shrink: 0;" />
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public string CssClass { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    private ElementReference button;
+    private IJSObjectReference? module;
+    private bool isNavigating;
+    private bool disposed;
+
+    private async Task HandleClick()
+    {
+        if (isNavigating)
+        {
+            return;
+        }
+
+        isNavigating = true;
+        try
+        {
+            if (module is null)
+            {
+                var importedModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/detail-view-button.js");
+                if (disposed)
+                {
+                    await importedModule.DisposeAsync();
+                    return;
+                }
+
+                module = importedModule;
+            }
+
+            await module.InvokeVoidAsync("playRelease", button);
+            if (!disposed)
+            {
+                await OnClick.InvokeAsync();
+            }
+        }
+        finally
+        {
+            isNavigating = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
