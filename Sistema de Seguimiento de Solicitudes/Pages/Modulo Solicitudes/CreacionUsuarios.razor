@@ -11,10 +11,13 @@
 @using CurrieTechnologies.Razor.SweetAlert2
 @using SolicitudesShared
 @using System.Text.Json
+@using System.Net
 @using Sistema_de_Seguimiento_de_Solicitudes.Services
 @using MudBlazor
 
 @inject IUsuarioService UsuarioService
+@inject AppMessageService Messages
+@inject ILogger<CreacionUsuarios> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SweetAlertService Swal
 @inject IJSRuntime JSRuntime
@@ -178,7 +181,7 @@
         <div class="modern-modal-box" role="dialog" aria-modal="true" aria-labelledby="cambio-contrasena-titulo" @onclick:stopPropagation>
             <div class="modal-header">
                 <h3 id="cambio-contrasena-titulo">Nueva Contraseña</h3>
-                <button type="button" class="close-btn" aria-label="Cerrar formulario" @onclick="CerrarModalCambioContrasena">&times;</button>
+                <button type="button" class="close-btn" aria-label="Cerrar formulario" @onclick="CerrarModalCambioContrasena" disabled="@guardandoContrasena">&times;</button>
             </div>
             <EditForm Model="CambioContrasenaModel" OnValidSubmit="GuardarCambioContrasena">
                 <DataAnnotationsValidator />
@@ -196,8 +199,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-cancel" @onclick="CerrarModalCambioContrasena">Cancelar</button>
-                    <button type="submit" class="btn-save">Actualizar</button>
+                    <button type="button" class="btn-cancel" @onclick="CerrarModalCambioContrasena" disabled="@guardandoContrasena">Cancelar</button>
+                    <button type="submit" class="btn-save" disabled="@guardandoContrasena">@(guardandoContrasena ? "Actualizando..." : "Actualizar")</button>
                 </div>
             </EditForm>
         </div>
@@ -215,6 +218,7 @@
 
     private bool MostrarFormularioModal = false;
     private bool MostrarModalCambioContrasena = false;
+    private bool guardandoContrasena;
     private bool EsAdministrador;
     private UsuariosDTO UsuarioCambioContrasena = null!;
     private CambioContrasenaModelClass CambioContrasenaModel = new();
@@ -295,25 +299,52 @@
         MostrarModalCambioContrasena = true;
     }
 
-    private void CerrarModalCambioContrasena() => MostrarModalCambioContrasena = false;
+    private void CerrarModalCambioContrasena()
+    {
+        if (!guardandoContrasena)
+        {
+            MostrarModalCambioContrasena = false;
+            CambioContrasenaModel = new();
+        }
+    }
 
     private async Task GuardarCambioContrasena()
     {
-        if (string.IsNullOrWhiteSpace(CambioContrasenaModel.NuevaContrasena) || CambioContrasenaModel.NuevaContrasena.Length < 6)
+        if (guardandoContrasena)
         {
-            await Swal.FireAsync("Error", "La contraseña debe tener al menos 6 caracteres.", SweetAlertIcon.Error);
             return;
         }
 
-        var res = await UsuarioService.CambiarContrasena(UsuarioCambioContrasena.Id, CambioContrasenaModel.NuevaContrasena);
-        if (res)
+        guardandoContrasena = true;
+        try
         {
-            await Swal.FireAsync("Éxito", "Clave actualizada correctamente", SweetAlertIcon.Success);
-            CerrarModalCambioContrasena();
+            var res = await UsuarioService.CambiarContrasena(UsuarioCambioContrasena.Id, CambioContrasenaModel.NuevaContrasena);
+            if (res)
+            {
+                MostrarModalCambioContrasena = false;
+                CambioContrasenaModel = new();
+                await Messages.SuccessAsync("Contraseña actualizada correctamente.");
+            }
+            else
+            {
+                await Messages.ErrorAsync("No se pudo actualizar la contraseña.");
+            }
         }
-        else
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException)
         {
-            await Swal.FireAsync("Error", "No se pudo actualizar la contraseña", SweetAlertIcon.Error);
+            Logger.LogError(ex, "No fue posible confirmar el cambio de contraseña del usuario {UsuarioId}.", UsuarioCambioContrasena.Id);
+            var mensaje = ex is HttpRequestException { StatusCode: HttpStatusCode.Forbidden }
+                ? "No tienes permiso para cambiar contraseñas."
+                : ex is HttpRequestException { StatusCode: HttpStatusCode.Unauthorized }
+                    ? "Tu sesión ya no está autorizada. Inicia sesión nuevamente."
+                    : ex is HttpRequestException { StatusCode: HttpStatusCode.NotFound }
+                        ? "No se encontró el usuario seleccionado."
+                        : "No fue posible confirmar el cambio de contraseña. Verifica tu conexión e inténtalo de nuevo.";
+            await Messages.ErrorAsync(mensaje);
+        }
+        finally
+        {
+            guardandoContrasena = false;
         }
     }
 

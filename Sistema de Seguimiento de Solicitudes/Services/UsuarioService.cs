@@ -93,22 +93,14 @@ namespace Sistema_de_Seguimiento_de_Solicitudes.Services
         public async Task<bool> CambiarContrasena(int usuarioId, string nuevaContrasena)
         {
             var data = new { UsuarioId = usuarioId, NuevaContrasena = nuevaContrasena };
-            var response = await _http.PostAsJsonAsync("api/Auth/CambiarContrasena", data);
+            using var response = await _http.PostAsJsonAsync("api/Auth/CambiarContrasena", data);
+            response.EnsureSuccessStatusCode();
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Error HTTP: {response.StatusCode}, Detalles: {errorContent}");
-            }
-
-            var contentString = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<ResponseAPI<bool>>(contentString);
-
-            if (result == null)
-                throw new Exception("Respuesta inválida del servidor.");
+            var result = await response.Content.ReadFromJsonAsync<ResponseAPI<bool>>()
+                ?? throw new InvalidOperationException("Respuesta inválida del servidor.");
 
             if (!result.Exito)
-                throw new Exception(result.Mensaje);
+                throw new InvalidOperationException(result.Mensaje ?? "No se pudo actualizar la contraseña.");
 
             return result.Data;
         }
