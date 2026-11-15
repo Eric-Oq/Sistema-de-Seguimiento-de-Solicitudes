@@ -1,9 +1,10 @@
 @using System.Security.Claims
 @using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
-@implements IDisposable
+@implements IAsyncDisposable
 
 @inject AuthService AuthService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <header class="sticky top-0 z-30 h-[64px] bg-[#f6edf0]/95 px-4 py-1">
     @if (userPanelOpen)
@@ -67,12 +68,22 @@
     private bool replayHeaderAnimation;
     private string currentSection = string.Empty;
     private ElementReference userPanelButton;
+    private DotNetObjectReference<SystemHeader>? inactivityReference;
     private bool IsMenu => string.Equals(Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/'), "menu", StringComparison.OrdinalIgnoreCase);
 
     protected override void OnInitialized()
     {
         currentSection = GetSection(Navigation.Uri);
         Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            inactivityReference = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("startInactivityWatcher", inactivityReference);
+        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
@@ -98,9 +109,11 @@
             : segments.FirstOrDefault() ?? string.Empty;
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         Navigation.LocationChanged -= OnLocationChanged;
+        await JS.InvokeVoidAsync("stopInactivityWatcher");
+        inactivityReference?.Dispose();
     }
 
     private void ToggleUserPanel() => userPanelOpen = !userPanelOpen;
@@ -121,4 +134,7 @@
         await AuthService.Logout();
         Navigation.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
     }
+
+    [JSInvokable]
+    public Task CerrarSesionAuto() => LogoutClicked();
 }

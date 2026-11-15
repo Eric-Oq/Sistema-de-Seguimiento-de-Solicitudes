@@ -1,61 +1,31 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
-@using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
-
 @inherits LayoutComponentBase
-@implements IAsyncDisposable
-
-@inject NavigationManager NavigationManager
-@inject AuthService AuthService
-@inject CustomAuthenticationStateProvider CustomAuthStateProvider
-@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <HeadContent>
     <RadzenTheme Theme="material" />
 </HeadContent>
 
-<!-- Necesario para que calendario y modales no colapsen -->
-<RadzenComponents />
+<AuthorizeView>
+    <Authorized>
+        <RadzenComponents />
 
-<div class="page flex-row">
-    <!-- Panel lateral oscuro -->
-    <aside class="sidebar motion-safe:animate-sidebar-enter">
-        <NavMenu />
-    </aside>
+        <div class="page flex-row">
+            <aside class="sidebar motion-safe:animate-sidebar-enter">
+                <NavMenu />
+            </aside>
 
-    <!-- Contenedor principal limpio -->
-    <main class="module-main">
-        <!-- Aquí se cargarán las páginas de tu módulo -->
-        <article class="content module-content motion-safe:motion-translate-y-in-[12px] motion-safe:motion-opacity-in-0 motion-safe:motion-duration-[800ms] motion-safe:[animation-fill-mode:backwards]">
-            @Body
-        </article>
-    </main>
-</div>
-
-@code {
-    // Si cambiaste el nombre del archivo, asegúrate de cambiar "MainLayout" aquí
-    private DotNetObjectReference<MainLayout>? objRef;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Mantiene viva la seguridad del sistema
-            objRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("startInactivityWatcher", objRef);
-        }
-    }
-
-    [JSInvokable]
-    public async Task CerrarSesionAuto()
-    {
-        await JS.InvokeVoidAsync("stopInactivityWatcher");
-        await CustomAuthStateProvider.RemoveToken();
-        NavigationManager.NavigateTo("/login", new NavigationOptions { ReplaceHistoryEntry = true });
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        objRef?.Dispose();
-        await JS.InvokeVoidAsync("stopInactivityWatcher");
-    }
-}
+            <main class="module-main">
+                <article @key="Navigation.Uri.Split('?', '#')[0]" class="content module-content module-page-enter">
+                    @Body
+                </article>
+            </main>
+        </div>
+    </Authorized>
+    <Authorizing>
+        <ModuleStartupLoading />
+    </Authorizing>
+    <NotAuthorized>
+        @Body
+    </NotAuthorized>
+</AuthorizeView>

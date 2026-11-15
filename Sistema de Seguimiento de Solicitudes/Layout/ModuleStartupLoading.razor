@@ -1,0 +1,58 @@
+@inject NavigationManager Navigation
+
+<div class="module-startup" data-view="@View" role="status" aria-label="Cargando página" aria-busy="true">
+    <div class="module-startup-header" aria-hidden="true">
+        <span class="startup-skeleton-bar module-startup-header-mark"></span>
+        <span class="startup-skeleton-bar module-startup-header-user"></span>
+    </div>
+    <div class="module-startup-layout" aria-hidden="true">
+        <aside class="module-startup-sidebar">
+            <span class="startup-skeleton-bar"></span>
+            <span class="startup-skeleton-bar"></span>
+            <span class="startup-skeleton-bar"></span>
+            <span class="startup-skeleton-bar"></span>
+        </aside>
+        <main class="module-startup-content">
+            <span class="startup-skeleton-bar module-startup-title"></span>
+            <span class="startup-skeleton-bar module-startup-subtitle"></span>
+            <div class="module-startup-filters">
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+            </div>
+            <div class="module-startup-cards">
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+            </div>
+            <div class="module-startup-panel">
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+                <span class="startup-skeleton-bar"></span>
+            </div>
+        </main>
+    </div>
+</div>
+
+@code {
+    private string View
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/').ToLowerInvariant();
+            if (path is "" or "menu")
+                return "menu";
+            if (path.EndsWith("/inicio-solicitudes") || path.EndsWith("/estadisticas"))
+                return "dashboard";
+            if (path.EndsWith("/calendario"))
+                return "calendar";
+            if (path.Contains("/detalles/") || path.Contains("/recursos-revision/registro"))
+                return "form";
+            return "table";
+        }
+    }
+}

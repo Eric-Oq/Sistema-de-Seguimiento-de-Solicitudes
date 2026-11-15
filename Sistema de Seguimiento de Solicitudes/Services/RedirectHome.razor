@@ -1,11 +1,20 @@
 ﻿@page "/"
+@layout LoginLayout
 
 @using Sistema_de_Seguimiento_de_Solicitudes.Services.LoginServices
+@using Microsoft.AspNetCore.Components.Authorization
 
 @inject NavigationManager Navigation
 @inject CustomAuthenticationStateProvider AuthenticationStateProvider 
 
-<h3>Redirigiendo</h3>
+<AuthorizeView>
+	<Authorizing>
+		<div class="initial-login"><StartupLoading /></div>
+		<div class="initial-module"><ModuleStartupLoading /></div>
+	</Authorizing>
+	<Authorized><ModuleStartupLoading /></Authorized>
+	<NotAuthorized><StartupLoading /></NotAuthorized>
+</AuthorizeView>
 
 @code {
 	protected override async Task OnInitializedAsync()

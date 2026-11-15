@@ -14,10 +14,10 @@
     <link href="manifest.webmanifest" rel="manifest" />
 
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" media="print" onload="this.media='all'">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" media="print" onload="this.media='all'" />
 
     <style>
         /* Compacta automáticamente todos los tamaños calculados en rem */
@@ -29,7 +29,86 @@
 </head>
 
 <body>
-    <div id="app"></div>
+    <script>
+        const startupPath = location.pathname.toLowerCase().replace(/\/+$/, '');
+        const startupLogin = startupPath === '/login' || (startupPath === '' && !sessionStorage.getItem('authToken'));
+        const startupView = startupPath === '/menu' || startupPath === ''
+            ? 'menu'
+            : startupPath.endsWith('/inicio-solicitudes') || startupPath.endsWith('/estadisticas')
+            ? 'dashboard'
+            : startupPath.endsWith('/calendario')
+                ? 'calendar'
+                : startupPath.includes('/detalles/') || startupPath.includes('/recursos-revision/registro')
+                    ? 'form'
+                    : 'table';
+        document.documentElement.dataset.startup = startupLogin ? 'login' : 'module';
+        document.documentElement.dataset.startupView = startupView;
+    </script>
+    <div id="app">
+        <div class="startup-loading initial-login" role="status" aria-label="Cargando aplicación" aria-busy="true">
+            <div class="startup-skeleton" aria-hidden="true">
+                <div class="startup-skeleton-brand">
+                    <span class="startup-skeleton-bar startup-skeleton-logo"></span>
+                    <div class="startup-skeleton-brand-copy">
+                        <span class="startup-skeleton-bar startup-skeleton-brand-title"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-brand-line"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-brand-line short"></span>
+                    </div>
+                </div>
+                <div class="startup-skeleton-form">
+                    <div class="startup-skeleton-form-content">
+                        <span class="startup-skeleton-bar startup-skeleton-icon"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-title"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-subtitle"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-label"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-field"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-label"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-field"></span>
+                        <span class="startup-skeleton-bar startup-skeleton-button"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="initial-module">
+            <div class="module-startup" role="status" aria-label="Cargando página" aria-busy="true">
+                <div class="module-startup-header" aria-hidden="true">
+                    <span class="startup-skeleton-bar module-startup-header-mark"></span>
+                    <span class="startup-skeleton-bar module-startup-header-user"></span>
+                </div>
+                <div class="module-startup-layout" aria-hidden="true">
+                    <aside class="module-startup-sidebar">
+                        <span class="startup-skeleton-bar"></span>
+                        <span class="startup-skeleton-bar"></span>
+                        <span class="startup-skeleton-bar"></span>
+                        <span class="startup-skeleton-bar"></span>
+                    </aside>
+                    <main class="module-startup-content">
+                        <span class="startup-skeleton-bar module-startup-title"></span>
+                        <span class="startup-skeleton-bar module-startup-subtitle"></span>
+                        <div class="module-startup-filters">
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                        </div>
+                        <div class="module-startup-cards">
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                        </div>
+                        <div class="module-startup-panel">
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                            <span class="startup-skeleton-bar"></span>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="blazor-error-ui">
         An unhandled error has occurred.
