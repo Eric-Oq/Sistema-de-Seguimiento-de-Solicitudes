@@ -96,21 +96,22 @@
 <!-- ÁREA DE REPORTE Y DESGLOSE -->
 @if (cargando && !estadisticas.Any())
 {
-    <LoadingContent Sections="3" Fields="4" />
+    <LoadingContent Variant="dashboard" Sections="4" Fields="1" />
 }
 else if (!string.IsNullOrEmpty(errorEstadisticas))
 {
-    <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700">@errorEstadisticas</div>
+    <div role="alert" class="module-data-enter rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700">@errorEstadisticas</div>
 }
 else if (!estadisticas.Any() && !cargando)
 {
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center text-slate-400">
+    <div class="module-data-enter bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center text-slate-400">
         <SvgIcon Name="clipboard" CssClass="mx-auto mb-2 h-8 w-8" />
         <p class="text-sm">No se encontraron métricas para los criterios seleccionados.</p>
     </div>
 }
 else if (estadisticas.Any())
 {
+    <div class="module-data-enter">
     <!-- TOTAL DE RECURSOS REGISTRADOS (EXTRAÍDO A TARJETA PRINCIPAL) -->
     <div class="bg-brand-900 text-white rounded-xl shadow-sm p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between border border-brand-800">
         <div>
@@ -283,6 +284,7 @@ else if (estadisticas.Any())
             </div>
         </div>
 
+    </div>
     </div>
 }
 
