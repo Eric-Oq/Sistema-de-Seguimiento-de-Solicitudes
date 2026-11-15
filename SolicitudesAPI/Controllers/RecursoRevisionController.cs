@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Net.Http.Headers;
 using Microsoft.Data.SqlClient;
 using Dapper;
 using SolicitudesAPI;
@@ -321,8 +322,9 @@ namespace SolicitudesAPI.Controllers
             var archivo = await con.QuerySingleOrDefaultAsync<ArchivoPdfDTO>(query, new { ID = idArchivo });
             if (archivo is not null)
             {
-                // FORZAR VISUALIZACIÓN INLINE (En lugar de descarga automática)
-                Response.Headers["Content-Disposition"] = $"inline; filename=\"{archivo.NombreArchivo}\"";
+                var disposition = new ContentDispositionHeaderValue("inline");
+                disposition.SetHttpFileName(archivo.NombreArchivo);
+                Response.Headers.ContentDisposition = disposition.ToString();
 
                 return File(archivo.Contenido, "application/pdf");
             }
