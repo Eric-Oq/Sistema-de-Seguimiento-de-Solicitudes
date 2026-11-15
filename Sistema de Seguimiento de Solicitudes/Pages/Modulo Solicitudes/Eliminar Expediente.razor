@@ -8,7 +8,6 @@
 
 @inject IExpedienteService ExpedienteService
 @inject SweetAlertService Swal
-@inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Seguimiento de solicitudes</PageTitle>
@@ -145,11 +144,6 @@
     {
         listaExpedientes = await ExpedienteService.Lista();
 
-        // Genera un ID aleatorio para la ruta
-        var randomNumber = new Random().Next(1000, 9999);
-        var guidPart = Guid.NewGuid().ToString().Substring(0, 4); // Solo los primeros 4 caracteres
-        Id = $"{randomNumber}-{guidPart}";
-        NavigationManager.NavigateTo($"/menu/modulo-solicitudes/eliminar-expedientes/{Id}");
         ExpedientesFiltrados = new List<ExpedienteDTO>(listaExpedientes.OrderByDescending(e => e.Id));
         cargandoInicial = false;
     }
