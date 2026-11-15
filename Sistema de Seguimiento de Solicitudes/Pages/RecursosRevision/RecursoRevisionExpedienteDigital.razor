@@ -422,10 +422,9 @@
                                                         @onclick="() => DescargarArchivoIndividual(doc.IdArchivo, doc.NombreArchivo)">
                                                     Descargar
                                                 </button>
-                                                <span class="text-slate-300">|</span>
-                                                <!-- SOLUCIÓN AL BOTÓN ELIMINAR (Punto 2) -->
                                                 @if (EsAdministrador)
                                                 {
+                                                    <span class="text-slate-300">|</span>
                                                     <button type="button" class="hover:underline text-rose-600 hover:text-rose-800"
                                                             @onclick="() => EliminarDocumentoPDF(doc.IdArchivo, doc.NombreArchivo)">
                                                         Eliminar
@@ -1070,7 +1069,7 @@
             }
             else
             {
-                MostrarMensajeDoc("No se pudo eliminar el documento.", false);
+                MostrarMensajeDoc($"No se pudo eliminar el documento (HTTP {(int)res.StatusCode}).", false);
             }
         }
         catch (Exception ex)
@@ -1081,7 +1080,23 @@
 
     private async Task VerPDF(int idArchivo)
     {
-        await JS.InvokeVoidAsync("open", $"{Http.BaseAddress}api/RecursoRevision/Expediente/PDF/{idArchivo}", "_blank");
+        var visorId = Guid.NewGuid().ToString();
+        try
+        {
+            if (!((IJSInProcessRuntime)JS).Invoke<bool>("recursoRevisionPdf.abrirVisor", visorId))
+            {
+                await Messages.WarningAsync("El navegador bloqueó la nueva pestaña. Permite las ventanas emergentes e inténtalo de nuevo.");
+                return;
+            }
+
+            var bytes = await Http.GetByteArrayAsync($"api/RecursoRevision/Expediente/PDF/{idArchivo}");
+            await JS.InvokeVoidAsync("recursoRevisionPdf.mostrar", visorId, bytes);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("recursoRevisionPdf.cerrar", visorId);
+            await Messages.ErrorAsync($"No se pudo abrir el documento: {ex.Message}");
+        }
     }
 
     private async Task DescargarArchivoIndividual(int idArchivo, string nombreArchivo)
@@ -1089,7 +1104,7 @@
         try
         {
             var bytes = await Http.GetByteArrayAsync($"api/RecursoRevision/Expediente/PDF/{idArchivo}");
-            await JS.InvokeVoidAsync("downloadFileFromByteArray", new { ByteArray = bytes, FileName = nombreArchivo, ContentType = "application/pdf" });
+            await JS.InvokeVoidAsync("recursoRevisionPdf.descargar", bytes, nombreArchivo);
         }
         catch (Exception ex) { await Messages.ErrorAsync($"Error: {ex.Message}"); }
     }
