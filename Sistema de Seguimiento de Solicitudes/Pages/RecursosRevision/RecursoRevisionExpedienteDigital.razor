@@ -718,6 +718,7 @@
     private bool guardandoArchivo = false;
     private string mensajeDoc = "";
     private bool mensajeDocExito = true;
+    private string usuarioSesionActual = "Usuario"; // Respaldo fijo del usuario logueado
     private string nuevoDocUsuario = "";
     private CancellationTokenSource? ctsAlertaDoc;
     private List<ArchivoExpedienteDTO> documentosGuardados = new();
@@ -765,7 +766,13 @@
         var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         EsSoloConsulta = authenticationState.User.IsInRole("CONSULTA");
         EsAdministrador = authenticationState.User.IsInRole("ADMINISTRADOR");
-        nuevoDocUsuario = authenticationState.User.Identity?.Name ?? string.Empty;
+
+        usuarioSesionActual = authenticationState.User.Identity?.Name ?? "Usuario";
+        if (string.IsNullOrWhiteSpace(usuarioSesionActual))
+        {
+            usuarioSesionActual = "Usuario";
+        }
+        nuevoDocUsuario = usuarioSesionActual;
 
         await CargarListaExpedientes();
         await CargarFoliosDisponibles();
@@ -848,7 +855,7 @@
 
         try
         {
-            // Declaramos la variable de respuesta ANTES del if, para que sea accesible globalmente en el try
+            // Se declara una sola vez para usarla tanto en POST como en PUT
             HttpResponseMessage response;
 
             if (modelo.IdExpediente == 0)
@@ -861,7 +868,7 @@
                     return;
                 }
 
-                // Ejecuta la petición POST y la asigna a la variable externa
+                // Se asigna a 'response' (sin usar 'var')
                 response = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", modelo);
 
                 if (response.IsSuccessStatusCode)
@@ -870,33 +877,53 @@
                     await CargarListaExpedientes();
                     MostrarMensaje("Expediente guardado correctamente.", "success");
                     await JS.InvokeVoidAsync("scrollToTop");
-                    return; // Terminamos aquí si fue exitoso
+                    return; // Termina aquí si fue exitoso
                 }
             }
-            else
+            else // MODO ACTUALIZACIÓN
             {
-                // MODO ACTUALIZAR
-                // Ejecuta la petición PUT y la asigna a la misma variable externa
+                // Se asigna a la misma variable 'response' (sin 'var')
                 response = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", modelo);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var errorData = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                    string errorMsg = errorData != null && errorData.ContainsKey("mensaje")
-                        ? errorData["mensaje"]
-                        : "Error al actualizar el expediente.";
-                    MostrarMensaje(errorMsg, "error");
-                    return; // Terminamos aquí si fue exitoso
+                    // 1. Extraemos el mensaje de éxito de la API
+                    var resData = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+                    string mensajeApi = resData != null && resData.ContainsKey("mensaje")
+                        ? resData["mensaje"]
+                        : "Expediente actualizado correctamente.";
+
+                    // 2. Clonamos los datos actuales antes de limpiar el formulario
+                    var expedienteModificado = JsonSerializer.Deserialize<ExpedienteRevisionDTO>(JsonSerializer.Serialize(modelo));
+
+                    // 3. Limpieza del formulario
+                    ResetearFormulario();
+
+                    // 4. Actualizamos la tabla inferior validando que el clon no sea nulo (elimina advertencias CS8602 y CS8604)
+                    await CargarListaExpedientes();
+                    if (expedienteModificado != null)
+                    {
+                        listaExpedientes.RemoveAll(x => x.IdExpediente == expedienteModificado.IdExpediente);
+                        listaExpedientes.Insert(0, expedienteModificado);
+                    }
+
+                    // 5. Alertas visuales
+                    MostrarMensaje(mensajeApi, "success");
+                    await JS.InvokeVoidAsync("scrollToTop");
+                    StateHasChanged();
+                    return; // Termina aquí si la actualización fue exitosa
                 }
             }
 
+            // ==============================================================
+            // BLOQUE MAESTRO DE ERRORES (Se ejecuta solo si POST o PUT fallan)
+            // ==============================================================
             string errorMsjBackend = "Error de comunicación con el servidor.";
             try
             {
                 var contentString = await response.Content.ReadAsStringAsync();
                 if (!string.IsNullOrWhiteSpace(contentString))
                 {
-                    // Llamada absoluta a System.Text.Json.JsonDocument
                     using var doc = System.Text.Json.JsonDocument.Parse(contentString);
                     if (doc.RootElement.TryGetProperty("mensaje", out var mensajeProp))
                     {
@@ -921,20 +948,25 @@
         cargandoEdicion = true;
         try
         {
-        modelo = JsonSerializer.Deserialize<ExpedienteRevisionDTO>(JsonSerializer.Serialize(exp)) ?? new ExpedienteRevisionDTO();
-        modeloOriginalJson = JsonSerializer.Serialize(modelo);
-        archivosModificados = false;
+            modelo = JsonSerializer.Deserialize<ExpedienteRevisionDTO>(JsonSerializer.Serialize(exp)) ?? new ExpedienteRevisionDTO();
+            archivosModificados = false;
 
-        // Limpiamos los mensajes
-        mensajeDoc = "";
-        CerrarAlerta();
+            // Garantiza que el usuario responsable siempre aparezca al editar
+            nuevoDocUsuario = usuarioSesionActual;
 
-        await CargarDocumentosDelExpediente(exp.IdExpediente);
-        await CargarBitacora(exp.IdExpediente);
+            // Limpiamos los mensajes
+            mensajeDoc = "";
+            CerrarAlerta();
 
-        MostrarMensaje($"Expediente {exp.NumeroRecurso} cargado.", "success");
-        if (desplazar)
-            await JS.InvokeVoidAsync("scrollToTop");
+            await CargarDocumentosDelExpediente(exp.IdExpediente);
+            await CargarBitacora(exp.IdExpediente);
+
+            // Tomamos la foto del modelo DESPUÉS de actualizar el conteo de documentos
+            modeloOriginalJson = JsonSerializer.Serialize(modelo);
+
+            MostrarMensaje($"Expediente {exp.NumeroRecurso} cargado.", "success");
+            if (desplazar)
+                await JS.InvokeVoidAsync("scrollToTop");
         }
         finally
         {
@@ -985,18 +1017,18 @@
         errorDocumentos = string.Empty;
         errorActuaciones = string.Empty;
 
-        // Reset de PDFs (Punto 1)
+        // Reset de PDFs
         documentosGuardados.Clear();
         archivoPorSubir = null;
         inputFileKey = Guid.NewGuid(); // Forzamos limpieza del HTML del archivo
         archivosModificados = false;
         mensajeDoc = "";
 
-        // Limpiamos los campos del formulario de carga
+        // Limpiamos los campos del formulario de carga, PERO conservamos al usuario
         nuevoDocTipo = "Acuerdo de admisión";
         nuevoDocFecha = DateTime.Today;
         nuevoDocDescripcion = "";
-        nuevoDocUsuario = "";
+        nuevoDocUsuario = usuarioSesionActual; // Evita que desaparezca el usuario
 
         // Reset de Bitácora
         listaActuaciones.Clear();
@@ -1035,7 +1067,20 @@
     private async Task CargarDocumentosDelExpediente(int idExpediente)
     {
         errorDocumentos = string.Empty;
-        try { documentosGuardados = await Http.GetFromJsonAsync<List<ArchivoExpedienteDTO>>($"api/RecursoRevision/Expediente/{idExpediente}/PDFs") ?? new(); }
+        try
+        {
+            documentosGuardados = await Http.GetFromJsonAsync<List<ArchivoExpedienteDTO>>($"api/RecursoRevision/Expediente/{idExpediente}/PDFs") ?? new();
+
+            // 1. Actualiza el contador en el modelo que se está editando
+            modelo.TotalDocumentos = documentosGuardados.Count;
+
+            // 2. Actualiza el contador en la fila de la tabla inferior
+            var expEnLista = listaExpedientes.FirstOrDefault(x => x.IdExpediente == idExpediente);
+            if (expEnLista != null)
+            {
+                expEnLista.TotalDocumentos = documentosGuardados.Count;
+            }
+        }
         catch (Exception ex)
         {
             documentosGuardados = new();
@@ -1052,10 +1097,9 @@
     private async Task GuardarNuevoDocumento()
     {
         // 1. Validar que exista un expediente guardado en base de datos
-        if (modelo.IdExpediente == 0)
+        if (string.IsNullOrWhiteSpace(nuevoDocUsuario))
         {
-            MostrarMensajeDoc("Debes guardar primero el expediente antes de adjuntar documentos.", false);
-            return;
+            nuevoDocUsuario = usuarioSesionActual;
         }
 
         // 2. Validar campos obligatorios (Todos excepto nuevoDocDescripcion)

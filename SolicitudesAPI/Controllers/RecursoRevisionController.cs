@@ -307,7 +307,11 @@ namespace SolicitudesAPI.Controllers
                 INSERT INTO Expediente_Archivos
                     (id_expediente, nombre_archivo, contenido, tipo_documento, fecha_documento, descripcion, usuario_registro, fecha_registro)
                 VALUES 
-                    (@id_expediente, @nombre_archivo, @contenido, @tipo_documento, @fecha_documento, @descripcion, @usuario_registro, GETDATE());";
+                    (@id_expediente, @nombre_archivo, @contenido, @tipo_documento, @fecha_documento, @descripcion, @usuario_registro, GETDATE());
+                
+                UPDATE Expediente_Recurso SET fecha_modificacion = GETDATE() WHERE id_expediente = @id_expediente;";
+
+
 
             await con.ExecuteAsync(query, new
             {
