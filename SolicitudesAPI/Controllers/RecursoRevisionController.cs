@@ -45,9 +45,9 @@ namespace SolicitudesAPI.Controllers
 
             string query = @"
                 SELECT TOP 10 r.*, 
-                       (SELECT COUNT(1) FROM EXPEDIENTE_ARCHIVOS a WHERE a.ID_EXPEDIENTE = r.ID_EXPEDIENTE) AS TotalDocumentos
-                FROM EXPEDIENTE_RECURSO r
-                ORDER BY r.FECHA_MODIFICACION DESC";
+                       (SELECT COUNT(1) FROM Expediente_Archivos a WHERE a.id_expediente = r.id_expediente) AS TotalDocumentos
+                FROM Expediente_Recurso r
+                ORDER BY r.fecha_modificacion DESC";
 
             var lista = await con.QueryAsync<ExpedienteRevisionDTO>(query);
             return Ok(lista);
@@ -60,11 +60,11 @@ namespace SolicitudesAPI.Controllers
             using var con = GetConnection();
             string query = @"
                 SELECT r.*, 
-                       (SELECT COUNT(1) FROM EXPEDIENTE_ARCHIVOS a WHERE a.ID_EXPEDIENTE = r.ID_EXPEDIENTE) AS TotalDocumentos
-                FROM EXPEDIENTE_RECURSO r
-                WHERE r.ID_EXPEDIENTE = @ID";
+                       (SELECT COUNT(1) FROM Expediente_Archivos a WHERE a.id_expediente = r.id_expediente) AS TotalDocumentos
+                FROM Expediente_Recurso r
+                WHERE r.id_expediente = @id";
 
-            var expediente = await con.QuerySingleOrDefaultAsync<ExpedienteRevisionDTO>(query, new { ID = id });
+            var expediente = await con.QuerySingleOrDefaultAsync<ExpedienteRevisionDTO>(query, new { id });
             if (expediente is not null) return Ok(expediente);
 
             return NotFound(new { mensaje = "Expediente no encontrado" });
@@ -78,59 +78,70 @@ namespace SolicitudesAPI.Controllers
             if (string.IsNullOrWhiteSpace(m.NumeroRecurso))
                 return BadRequest(new { mensaje = "El número de recurso es obligatorio." });
 
+            if (string.IsNullOrWhiteSpace(m.FolioSolicitud))
+                return BadRequest(new { mensaje = "El folio de la solicitud es obligatorio." });
+
             using var con = GetConnection();
 
-            string queryExiste = "SELECT COUNT(1) FROM EXPEDIENTE_RECURSO WHERE NUMERO_RECURSO = @NUMERO";
-            if (await con.ExecuteScalarAsync<int>(queryExiste, new { NUMERO = m.NumeroRecurso.Trim() }) > 0)
+            // 1. Validar que el Folio exista previamente en el Módulo 1 (Tabla Expedientes)
+            string queryExisteFolio = "SELECT COUNT(1) FROM Expedientes WHERE CAST(Folio AS NVARCHAR(50)) = @folio";
+            if (await con.ExecuteScalarAsync<int>(queryExisteFolio, new { folio = m.FolioSolicitud.Trim() }) == 0)
+            {
+                return BadRequest(new { mensaje = $"El folio de solicitud '{m.FolioSolicitud.Trim()}' no está registrado en el Módulo de Solicitudes." });
+            }
+
+            // 2. Validar que el Número de Recurso no esté duplicado en el Módulo 2
+            string queryExisteRecurso = "SELECT COUNT(1) FROM Expediente_Recurso WHERE numero_recurso = @numero";
+            if (await con.ExecuteScalarAsync<int>(queryExisteRecurso, new { numero = m.NumeroRecurso.Trim() }) > 0)
             {
                 return Conflict(new { mensaje = $"El recurso '{m.NumeroRecurso}' ya existe en el sistema." });
             }
 
             string query = @"
-                INSERT INTO EXPEDIENTE_RECURSO (
-                    NUMERO_RECURSO, FOLIO_SOLICITUD, MATERIA_RECURSO, NOMBRE_RECURRENTE, FECHA_PRESENTACION, ESTATUS, RESPONSABLE_INTERNO,
-                    CONTENIDO_SOLICITUD, FECHA_RESPUESTA_SOLICITUD, RESPUESTA_OTORGADA, RAZON_INTERPOSICION,
-                    FECHA_ADMISION, FECHA_NOTIFICACION_ADMISION, FECHA_LIMITE_CONTESTACION, FECHA_CONTESTACION_RECURSO, SENTIDO_CONTESTACION,
-                    FECHA_CIERRE_INSTRUCCION, FECHA_RESOLUCION, SENTIDO_RESOLUCION, FECHA_NOTIFICACION_RESOLUCION,
-                    REQUIERE_CUMPLIMIENTO, FECHA_LIMITE_CUMPLIMIENTO, FECHA_CUMPLIO, CUMPLIO_RESOLUCION, ACUERDO_CUMPLIMIENTO, OBSERVACIONES,
-                    FECHA_CREACION, FECHA_MODIFICACION
+                INSERT INTO Expediente_Recurso (
+                    numero_recurso, folio_solicitud, materia_recurso, nombre_recurrente, fecha_presentacion, estatus, responsable_interno,
+                    contenido_solicitud, fecha_respuesta_solicitud, respuesta_otorgada, razon_interposicion,
+                    fecha_admision, fecha_notificacion_admision, fecha_limite_contestacion, fecha_contestacion_recurso, sentido_contestacion,
+                    fecha_cierre_instruccion, fecha_resolucion, sentido_resolucion, fecha_notificacion_resolucion,
+                    requiere_cumplimiento, fecha_limite_cumplimiento, fecha_cumplio, cumplio_resolucion, acuerdo_cumplimiento, observaciones,
+                    fecha_creacion, fecha_modificacion
                 ) VALUES (
-                    @NUMERO_RECURSO, @FOLIO_SOLICITUD, @MATERIA_RECURSO, @NOMBRE_RECURRENTE, @FECHA_PRESENTACION, @ESTATUS, @RESPONSABLE_INTERNO,
-                    @CONTENIDO_SOLICITUD, @FECHA_RESPUESTA_SOLICITUD, @RESPUESTA_OTORGADA, @RAZON_INTERPOSICION,
-                    @FECHA_ADMISION, @FECHA_NOTIFICACION_ADMISION, @FECHA_LIMITE_CONTESTACION, @FECHA_CONTESTACION_RECURSO, @SENTIDO_CONTESTACION,
-                    @FECHA_CIERRE_INSTRUCCION, @FECHA_RESOLUCION, @SENTIDO_RESOLUCION, @FECHA_NOTIFICACION_RESOLUCION,
-                    @REQUIERE_CUMPLIMIENTO, @FECHA_LIMITE_CUMPLIMIENTO, @FECHA_CUMPLIO, @CUMPLIO_RESOLUCION, @ACUERDO_CUMPLIMIENTO, @OBSERVACIONES,
+                    @numero_recurso, @folio_solicitud, @materia_recurso, @nombre_recurrente, @fecha_presentacion, @estatus, @responsable_interno,
+                    @contenido_solicitud, @fecha_respuesta_solicitud, @respuesta_otorgada, @razon_interposicion,
+                    @fecha_admision, @fecha_notificacion_admision, @fecha_limite_contestacion, @fecha_contestacion_recurso, @sentido_contestacion,
+                    @fecha_cierre_instruccion, @fecha_resolucion, @sentido_resolucion, @fecha_notificacion_resolucion,
+                    @requiere_cumplimiento, @fecha_limite_cumplimiento, @fecha_cumplio, @cumplio_resolucion, @acuerdo_cumplimiento, @observaciones,
                     GETDATE(), GETDATE()
                 );
                 SELECT SCOPE_IDENTITY();";
 
             var parameters = new DynamicParameters();
-            parameters.Add("@NUMERO_RECURSO", m.NumeroRecurso?.Trim());
-            parameters.Add("@FOLIO_SOLICITUD", m.FolioSolicitud?.Trim());
-            parameters.Add("@MATERIA_RECURSO", m.MateriaRecurso);
-            parameters.Add("@NOMBRE_RECURRENTE", m.NombreRecurrente);
-            parameters.Add("@FECHA_PRESENTACION", m.FechaPresentacion);
-            parameters.Add("@ESTATUS", m.Estatus);
-            parameters.Add("@RESPONSABLE_INTERNO", m.ResponsableInterno);
-            parameters.Add("@CONTENIDO_SOLICITUD", m.ContenidoSolicitud);
-            parameters.Add("@FECHA_RESPUESTA_SOLICITUD", m.FechaRespuestaSolicitud);
-            parameters.Add("@RESPUESTA_OTORGADA", m.RespuestaOtorgada);
-            parameters.Add("@RAZON_INTERPOSICION", m.RazonInterposicion);
-            parameters.Add("@FECHA_ADMISION", m.FechaAdmision);
-            parameters.Add("@FECHA_NOTIFICACION_ADMISION", m.FechaNotificacionAdmision);
-            parameters.Add("@FECHA_LIMITE_CONTESTACION", m.FechaLimiteContestacion);
-            parameters.Add("@FECHA_CONTESTACION_RECURSO", m.FechaContestacionRecurso);
-            parameters.Add("@SENTIDO_CONTESTACION", m.SentidoContestacion);
-            parameters.Add("@FECHA_CIERRE_INSTRUCCION", m.FechaCierreInstruccion);
-            parameters.Add("@FECHA_RESOLUCION", m.FechaResolucion);
-            parameters.Add("@SENTIDO_RESOLUCION", m.SentidoResolucion);
-            parameters.Add("@FECHA_NOTIFICACION_RESOLUCION", m.FechaNotificacionResolucion);
-            parameters.Add("@REQUIERE_CUMPLIMIENTO", m.RequiereCumplimiento);
-            parameters.Add("@FECHA_LIMITE_CUMPLIMIENTO", m.FechaLimiteCumplimiento);
-            parameters.Add("@FECHA_CUMPLIO", m.FechaCumplio);
-            parameters.Add("@CUMPLIO_RESOLUCION", m.CumplioResolucion);
-            parameters.Add("@ACUERDO_CUMPLIMIENTO", m.AcuerdoCumplimiento);
-            parameters.Add("@OBSERVACIONES", m.Observaciones);
+            parameters.Add("@numero_recurso", m.NumeroRecurso?.Trim());
+            parameters.Add("@folio_solicitud", m.FolioSolicitud?.Trim());
+            parameters.Add("@materia_recurso", m.MateriaRecurso);
+            parameters.Add("@nombre_recurrente", m.NombreRecurrente);
+            parameters.Add("@fecha_presentacion", m.FechaPresentacion);
+            parameters.Add("@estatus", m.Estatus);
+            parameters.Add("@responsable_interno", m.ResponsableInterno);
+            parameters.Add("@contenido_solicitud", m.ContenidoSolicitud);
+            parameters.Add("@fecha_respuesta_solicitud", m.FechaRespuestaSolicitud);
+            parameters.Add("@respuesta_otorgada", m.RespuestaOtorgada);
+            parameters.Add("@razon_interposicion", m.RazonInterposicion);
+            parameters.Add("@fecha_admision", m.FechaAdmision);
+            parameters.Add("@fecha_notificacion_admision", m.FechaNotificacionAdmision);
+            parameters.Add("@fecha_limite_contestacion", m.FechaLimiteContestacion);
+            parameters.Add("@fecha_contestacion_recurso", m.FechaContestacionRecurso);
+            parameters.Add("@sentido_contestacion", m.SentidoContestacion);
+            parameters.Add("@fecha_cierre_instruccion", m.FechaCierreInstruccion);
+            parameters.Add("@fecha_resolucion", m.FechaResolucion);
+            parameters.Add("@sentido_resolucion", m.SentidoResolucion);
+            parameters.Add("@fecha_notificacion_resolucion", m.FechaNotificacionResolucion);
+            parameters.Add("@requiere_cumplimiento", m.RequiereCumplimiento);
+            parameters.Add("@fecha_limite_cumplimiento", m.FechaLimiteCumplimiento);
+            parameters.Add("@fecha_cumplio", m.FechaCumplio);
+            parameters.Add("@cumplio_resolucion", m.CumplioResolucion);
+            parameters.Add("@acuerdo_cumplimiento", m.AcuerdoCumplimiento);
+            parameters.Add("@observaciones", m.Observaciones);
 
             var nuevoId = await con.ExecuteScalarAsync<int>(query, parameters);
             return Ok(new { idExpedienteCreado = nuevoId, mensaje = "Expediente guardado exitosamente" });
@@ -142,68 +153,79 @@ namespace SolicitudesAPI.Controllers
         public async Task<IActionResult> ActualizarExpediente([FromBody] ExpedienteRevisionDTO m)
         {
             if (m.IdExpediente <= 0)
-                return BadRequest("ID de expediente no válido");
+                return BadRequest(new { mensaje = "ID de expediente no válido." });
+
+            if (string.IsNullOrWhiteSpace(m.FolioSolicitud))
+                return BadRequest(new { mensaje = "El folio de la solicitud es obligatorio." });
 
             using var con = GetConnection();
+
+            // Validar que el Folio exista en la tabla Expedientes del Módulo 1
+            string queryExisteFolio = "SELECT COUNT(1) FROM Expedientes WHERE CAST(Folio AS NVARCHAR(50)) = @folio";
+            if (await con.ExecuteScalarAsync<int>(queryExisteFolio, new { folio = m.FolioSolicitud.Trim() }) == 0)
+            {
+                return BadRequest(new { mensaje = $"El folio de solicitud '{m.FolioSolicitud.Trim()}' no está registrado en el Módulo de Solicitudes." });
+            }
+
             string query = @"
-                UPDATE EXPEDIENTE_RECURSO SET
-                    NUMERO_RECURSO = @NUMERO_RECURSO,
-                    FOLIO_SOLICITUD = @FOLIO_SOLICITUD,
-                    MATERIA_RECURSO = @MATERIA_RECURSO,
-                    NOMBRE_RECURRENTE = @NOMBRE_RECURRENTE,
-                    FECHA_PRESENTACION = @FECHA_PRESENTACION,
-                    ESTATUS = @ESTATUS,
-                    RESPONSABLE_INTERNO = @RESPONSABLE_INTERNO,
-                    CONTENIDO_SOLICITUD = @CONTENIDO_SOLICITUD,
-                    FECHA_RESPUESTA_SOLICITUD = @FECHA_RESPUESTA_SOLICITUD,
-                    RESPUESTA_OTORGADA = @RESPUESTA_OTORGADA,
-                    RAZON_INTERPOSICION = @RAZON_INTERPOSICION,
-                    FECHA_ADMISION = @FECHA_ADMISION,
-                    FECHA_NOTIFICACION_ADMISION = @FECHA_NOTIFICACION_ADMISION,
-                    FECHA_LIMITE_CONTESTACION = @FECHA_LIMITE_CONTESTACION,
-                    FECHA_CONTESTACION_RECURSO = @FECHA_CONTESTACION_RECURSO,
-                    SENTIDO_CONTESTACION = @SENTIDO_CONTESTACION,
-                    FECHA_CIERRE_INSTRUCCION = @FECHA_CIERRE_INSTRUCCION,
-                    FECHA_RESOLUCION = @FECHA_RESOLUCION,
-                    SENTIDO_RESOLUCION = @SENTIDO_RESOLUCION,
-                    FECHA_NOTIFICACION_RESOLUCION = @FECHA_NOTIFICACION_RESOLUCION,
-                    REQUIERE_CUMPLIMIENTO = @REQUIERE_CUMPLIMIENTO,
-                    FECHA_LIMITE_CUMPLIMIENTO = @FECHA_LIMITE_CUMPLIMIENTO,
-                    FECHA_CUMPLIO = @FECHA_CUMPLIO,
-                    CUMPLIO_RESOLUCION = @CUMPLIO_RESOLUCION,
-                    ACUERDO_CUMPLIMIENTO = @ACUERDO_CUMPLIMIENTO,
-                    OBSERVACIONES = @OBSERVACIONES,
-                    FECHA_MODIFICACION = GETDATE()
-                WHERE ID_EXPEDIENTE = @ID";
+                UPDATE Expediente_Recurso SET
+                    numero_recurso = @numero_recurso,
+                    folio_solicitud = @folio_solicitud,
+                    materia_recurso = @materia_recurso,
+                    nombre_recurrente = @nombre_recurrente,
+                    fecha_presentacion = @fecha_presentacion,
+                    estatus = @estatus,
+                    responsable_interno = @responsable_interno,
+                    contenido_solicitud = @contenido_solicitud,
+                    fecha_respuesta_solicitud = @fecha_respuesta_solicitud,
+                    respuesta_otorgada = @respuesta_otorgada,
+                    razon_interposicion = @razon_interposicion,
+                    fecha_admision = @fecha_admision,
+                    fecha_notificacion_admision = @fecha_notificacion_admision,
+                    fecha_limite_contestacion = @fecha_limite_contestacion,
+                    fecha_contestacion_recurso = @fecha_contestacion_recurso,
+                    sentido_contestacion = @sentido_contestacion,
+                    fecha_cierre_instruccion = @fecha_cierre_instruccion,
+                    fecha_resolucion = @fecha_resolucion,
+                    sentido_resolucion = @sentido_resolucion,
+                    fecha_notificacion_resolucion = @fecha_notificacion_resolucion,
+                    requiere_cumplimiento = @requiere_cumplimiento,
+                    fecha_limite_cumplimiento = @fecha_limite_cumplimiento,
+                    fecha_cumplio = @fecha_cumplio,
+                    cumplio_resolucion = @cumplio_resolucion,
+                    acuerdo_cumplimiento = @acuerdo_cumplimiento,
+                    observaciones = @observaciones,
+                    fecha_modificacion = GETDATE()
+                WHERE id_expediente = @id";
 
             var parameters = new DynamicParameters();
-            parameters.Add("@ID", m.IdExpediente);
-            parameters.Add("@NUMERO_RECURSO", m.NumeroRecurso?.Trim());
-            parameters.Add("@FOLIO_SOLICITUD", m.FolioSolicitud?.Trim());
-            parameters.Add("@MATERIA_RECURSO", m.MateriaRecurso);
-            parameters.Add("@NOMBRE_RECURRENTE", m.NombreRecurrente);
-            parameters.Add("@FECHA_PRESENTACION", m.FechaPresentacion);
-            parameters.Add("@ESTATUS", m.Estatus);
-            parameters.Add("@RESPONSABLE_INTERNO", m.ResponsableInterno);
-            parameters.Add("@CONTENIDO_SOLICITUD", m.ContenidoSolicitud);
-            parameters.Add("@FECHA_RESPUESTA_SOLICITUD", m.FechaRespuestaSolicitud);
-            parameters.Add("@RESPUESTA_OTORGADA", m.RespuestaOtorgada);
-            parameters.Add("@RAZON_INTERPOSICION", m.RazonInterposicion);
-            parameters.Add("@FECHA_ADMISION", m.FechaAdmision);
-            parameters.Add("@FECHA_NOTIFICACION_ADMISION", m.FechaNotificacionAdmision);
-            parameters.Add("@FECHA_LIMITE_CONTESTACION", m.FechaLimiteContestacion);
-            parameters.Add("@FECHA_CONTESTACION_RECURSO", m.FechaContestacionRecurso);
-            parameters.Add("@SENTIDO_CONTESTACION", m.SentidoContestacion);
-            parameters.Add("@FECHA_CIERRE_INSTRUCCION", m.FechaCierreInstruccion);
-            parameters.Add("@FECHA_RESOLUCION", m.FechaResolucion);
-            parameters.Add("@SENTIDO_RESOLUCION", m.SentidoResolucion);
-            parameters.Add("@FECHA_NOTIFICACION_RESOLUCION", m.FechaNotificacionResolucion);
-            parameters.Add("@REQUIERE_CUMPLIMIENTO", m.RequiereCumplimiento);
-            parameters.Add("@FECHA_LIMITE_CUMPLIMIENTO", m.FechaLimiteCumplimiento);
-            parameters.Add("@FECHA_CUMPLIO", m.FechaCumplio);
-            parameters.Add("@CUMPLIO_RESOLUCION", m.CumplioResolucion);
-            parameters.Add("@ACUERDO_CUMPLIMIENTO", m.AcuerdoCumplimiento);
-            parameters.Add("@OBSERVACIONES", m.Observaciones);
+            parameters.Add("@id", m.IdExpediente);
+            parameters.Add("@numero_recurso", m.NumeroRecurso?.Trim());
+            parameters.Add("@folio_solicitud", m.FolioSolicitud?.Trim());
+            parameters.Add("@materia_recurso", m.MateriaRecurso);
+            parameters.Add("@nombre_recurrente", m.NombreRecurrente);
+            parameters.Add("@fecha_presentacion", m.FechaPresentacion);
+            parameters.Add("@estatus", m.Estatus);
+            parameters.Add("@responsable_interno", m.ResponsableInterno);
+            parameters.Add("@contenido_solicitud", m.ContenidoSolicitud);
+            parameters.Add("@fecha_respuesta_solicitud", m.FechaRespuestaSolicitud);
+            parameters.Add("@respuesta_otorgada", m.RespuestaOtorgada);
+            parameters.Add("@razon_interposicion", m.RazonInterposicion);
+            parameters.Add("@fecha_admision", m.FechaAdmision);
+            parameters.Add("@fecha_notificacion_admision", m.FechaNotificacionAdmision);
+            parameters.Add("@fecha_limite_contestacion", m.FechaLimiteContestacion);
+            parameters.Add("@fecha_contestacion_recurso", m.FechaContestacionRecurso);
+            parameters.Add("@sentido_contestacion", m.SentidoContestacion);
+            parameters.Add("@fecha_cierre_instruccion", m.FechaCierreInstruccion);
+            parameters.Add("@fecha_resolucion", m.FechaResolucion);
+            parameters.Add("@sentido_resolucion", m.SentidoResolucion);
+            parameters.Add("@fecha_notificacion_resolucion", m.FechaNotificacionResolucion);
+            parameters.Add("@requiere_cumplimiento", m.RequiereCumplimiento);
+            parameters.Add("@fecha_limite_cumplimiento", m.FechaLimiteCumplimiento);
+            parameters.Add("@fecha_cumplio", m.FechaCumplio);
+            parameters.Add("@cumplio_resolucion", m.CumplioResolucion);
+            parameters.Add("@acuerdo_cumplimiento", m.AcuerdoCumplimiento);
+            parameters.Add("@observaciones", m.Observaciones);
 
             await con.ExecuteAsync(query, parameters);
 
@@ -222,41 +244,42 @@ namespace SolicitudesAPI.Controllers
             using var con = GetConnection();
 
             string query = @"
-                SELECT TOP (@Limite) r.*,
-                       (SELECT COUNT(1) FROM EXPEDIENTE_ARCHIVOS a WHERE a.ID_EXPEDIENTE = r.ID_EXPEDIENTE) AS TotalDocumentos
-                FROM EXPEDIENTE_RECURSO r
+                SELECT TOP (@limite) r.*,
+                       (SELECT COUNT(1) FROM Expediente_Archivos a WHERE a.id_expediente = r.id_expediente) AS TotalDocumentos
+                FROM Expediente_Recurso r
                 WHERE 1 = 1 ";
 
             if (!string.IsNullOrWhiteSpace(criterio))
             {
-                query += " AND (r.FOLIO_SOLICITUD LIKE '%' + @CRITERIO + '%' OR r.NUMERO_RECURSO LIKE '%' + @CRITERIO + '%' OR r.NOMBRE_RECURRENTE LIKE '%' + @CRITERIO + '%') ";
+                query += " AND (r.folio_solicitud LIKE '%' + @criterio + '%' OR r.numero_recurso LIKE '%' + @criterio + '%' OR r.nombre_recurrente LIKE '%' + @criterio + '%') ";
             }
             if (!string.IsNullOrWhiteSpace(estatus))
             {
-                query += " AND r.ESTATUS = @ESTATUS ";
+                query += " AND r.estatus = @estatus ";
             }
             if (!string.IsNullOrWhiteSpace(materia))
             {
-                query += " AND r.MATERIA_RECURSO LIKE '%' + @MATERIA + '%' ";
+                query += " AND r.materia_recurso LIKE '%' + @materia + '%' ";
             }
             if (!string.IsNullOrWhiteSpace(resolucion))
             {
-                query += " AND r.SENTIDO_RESOLUCION = @RESOLUCION ";
+                query += " AND r.sentido_resolucion = @resolucion ";
             }
 
-            query += " ORDER BY r.FECHA_MODIFICACION DESC";
+            query += " ORDER BY r.fecha_modificacion DESC";
 
             var parameters = new DynamicParameters();
-            parameters.Add("@LIMITE", limite);
-            if (!string.IsNullOrWhiteSpace(criterio)) parameters.Add("@CRITERIO", criterio.Trim());
-            if (!string.IsNullOrWhiteSpace(estatus)) parameters.Add("@ESTATUS", estatus.Trim());
-            if (!string.IsNullOrWhiteSpace(materia)) parameters.Add("@MATERIA", materia.Trim());
-            if (!string.IsNullOrWhiteSpace(resolucion)) parameters.Add("@RESOLUCION", resolucion.Trim());
+            parameters.Add("@limite", limite);
+            if (!string.IsNullOrWhiteSpace(criterio)) parameters.Add("@criterio", criterio.Trim());
+            if (!string.IsNullOrWhiteSpace(estatus)) parameters.Add("@estatus", estatus.Trim());
+            if (!string.IsNullOrWhiteSpace(materia)) parameters.Add("@materia", materia.Trim());
+            if (!string.IsNullOrWhiteSpace(resolucion)) parameters.Add("@resolucion", resolucion.Trim());
+
             var lista = await con.QueryAsync<ExpedienteRevisionDTO>(query, parameters);
             return Ok(lista);
         }
 
-        //6. SUBIR PDF CON METADATOS
+        // 6. SUBIR PDF CON METADATOS
         [HttpPost("Expediente/SubirPDF")]
         [Authorize(Roles = "ADMINISTRADOR,SUPERVISIÓN,CAPTURA")]
         public async Task<IActionResult> SubirPDF(
@@ -275,51 +298,53 @@ namespace SolicitudesAPI.Controllers
 
             using var con = GetConnection();
             string query = @"
-                INSERT INTO EXPEDIENTE_ARCHIVOS
-                    (ID_EXPEDIENTE, NOMBRE_ARCHIVO, CONTENIDO, TIPO_DOCUMENTO, FECHA_DOCUMENTO, DESCRIPCION, USUARIO_REGISTRO, FECHA_REGISTRO)
+                INSERT INTO Expediente_Archivos
+                    (id_expediente, nombre_archivo, contenido, tipo_documento, fecha_documento, descripcion, usuario_registro, fecha_registro)
                 VALUES 
-                    (@IdExpediente, @Nombre, @ContenidoBinario, @Tipo, @FechaDoc, @Descripcion, @Usuario, GETDATE());";
+                    (@id_expediente, @nombre_archivo, @contenido, @tipo_documento, @fecha_documento, @descripcion, @usuario_registro, GETDATE());";
 
             await con.ExecuteAsync(query, new
             {
-                IdExpediente = idExpediente,
-                Nombre = archivo.FileName,
-                ContenidoBinario = ms.ToArray(),
-                Tipo = tipoDocumento ?? "Documento",
-                FechaDoc = fechaDocumento,
-                Descripcion = descripcion ?? string.Empty,
-                Usuario = User.Identity?.Name ?? "Usuario"
+                id_expediente = idExpediente,
+                nombre_archivo = archivo.FileName,
+                contenido = ms.ToArray(),
+                tipo_documento = tipoDocumento ?? "Documento",
+                fecha_documento = fechaDocumento,
+                descripcion = descripcion ?? string.Empty,
+                usuario_registro = User.Identity?.Name ?? "Usuario"
             });
 
             return Ok(new { mensaje = "Documento guardado correctamente" });
         }
 
-        //7. OBTENER LISTA DE PDFs DEL EXPEDIENTE
+        // 7. OBTENER LISTA DE PDFs DEL EXPEDIENTE
         [HttpGet("Expediente/{idExpediente}/PDFs")]
         public async Task<IActionResult> ObtenerPDFs(int idExpediente)
         {
             using var con = GetConnection();
             string query = @"
-                SELECT ID_ARCHIVO AS IdArchivo, ID_EXPEDIENTE AS IdExpediente, NOMBRE_ARCHIVO AS NombreArchivo,
-                       ISNULL(TIPO_DOCUMENTO, 'Documento') AS TIPO_DOCUMENTO,
-                       ISNULL(FECHA_DOCUMENTO, FECHA_REGISTRO) AS FECHA_DOCUMENTO,
-                       ISNULL(DESCRIPCION, '') AS DESCRIPCION,
-                       ISNULL(USUARIO_REGISTRO, 'Usuario') AS Usuario
-                FROM EXPEDIENTE_ARCHIVOS
-                WHERE ID_EXPEDIENTE = @ID
-                ORDER BY ID_ARCHIVO DESC";
+                SELECT id_archivo AS IdArchivo, 
+                       id_expediente AS IdExpediente, 
+                       nombre_archivo AS NombreArchivo,
+                       ISNULL(tipo_documento, 'Documento') AS tipo_documento,
+                       ISNULL(fecha_documento, fecha_registro) AS fecha_documento,
+                       ISNULL(descripcion, '') AS descripcion,
+                       ISNULL(usuario_registro, 'Usuario') AS Usuario
+                FROM Expediente_Archivos
+                WHERE id_expediente = @id
+                ORDER BY id_archivo DESC";
 
-            var lista = await con.QueryAsync<ArchivoExpedienteDTO>(query, new { ID = idExpediente });
+            var lista = await con.QueryAsync<ArchivoExpedienteDTO>(query, new { id = idExpediente });
             return Ok(lista);
         }
 
-        //8. OBTENER BINARIO DEL PDF (Para Ver inline o Descargar)
+        // 8. OBTENER BINARIO DEL PDF (Para Ver inline o Descargar)
         [HttpGet("Expediente/PDF/{idArchivo}")]
         public async Task<IActionResult> DescargarPDF(int idArchivo)
         {
             using var con = GetConnection();
-            const string query = "SELECT NOMBRE_ARCHIVO AS NombreArchivo, CONTENIDO FROM EXPEDIENTE_ARCHIVOS WHERE ID_ARCHIVO = @ID";
-            var archivo = await con.QuerySingleOrDefaultAsync<ArchivoPdfDTO>(query, new { ID = idArchivo });
+            const string query = "SELECT nombre_archivo AS NombreArchivo, contenido AS Contenido FROM Expediente_Archivos WHERE id_archivo = @id";
+            var archivo = await con.QuerySingleOrDefaultAsync<ArchivoPdfDTO>(query, new { id = idArchivo });
             if (archivo is not null)
             {
                 var disposition = new ContentDispositionHeaderValue("inline");
@@ -337,8 +362,8 @@ namespace SolicitudesAPI.Controllers
         public async Task<IActionResult> EliminarPDF(int idArchivo)
         {
             using var con = GetConnection();
-            string query = "DELETE FROM EXPEDIENTE_ARCHIVOS WHERE ID_ARCHIVO = @ID";
-            int filasAfectadas = await con.ExecuteAsync(query, new { ID = idArchivo });
+            string query = "DELETE FROM Expediente_Archivos WHERE id_archivo = @id";
+            int filasAfectadas = await con.ExecuteAsync(query, new { id = idArchivo });
             if (filasAfectadas > 0) return Ok(new { mensaje = "Documento eliminado correctamente" });
             return NotFound("Archivo no encontrado");
         }
@@ -349,9 +374,10 @@ namespace SolicitudesAPI.Controllers
         {
             using var con = GetConnection();
             string query = @"
-                DELETE FROM EXPEDIENTE_ARCHIVOS WHERE ID_EXPEDIENTE = @ID;
-                DELETE FROM EXPEDIENTE_RECURSO WHERE ID_EXPEDIENTE = @ID;";
-            int filasAfectadas = await con.ExecuteAsync(query, new { ID = idExpediente });
+                DELETE FROM Expediente_Archivos WHERE id_expediente = @id;
+                DELETE FROM Expediente_Bitacora WHERE id_expediente = @id;
+                DELETE FROM Expediente_Recurso WHERE id_expediente = @id;";
+            int filasAfectadas = await con.ExecuteAsync(query, new { id = idExpediente });
             if (filasAfectadas > 0) return Ok(new { mensaje = "Expediente eliminado exitosamente" });
             return NotFound("Expediente no encontrado");
         }
@@ -382,15 +408,19 @@ namespace SolicitudesAPI.Controllers
             using var con = GetConnection();
 
             string query = @"
-                SELECT ID_ACTUACION AS IdActuacion, ID_EXPEDIENTE AS IdExpediente,
-                       FECHA_ACTUACION AS FechaActuacion, ACTUACION AS Actuacion,
-                       DESCRIPCION AS Descripcion, ISNULL(DOCUMENTO_VINCULADO, N'—') AS DocumentoVinculado,
-                       USUARIO AS Usuario, FECHA_REGISTRO AS FechaRegistro
-                FROM EXPEDIENTE_BITACORA
-                WHERE ID_EXPEDIENTE = @ID
-                ORDER BY FECHA_ACTUACION ASC, ID_ACTUACION ASC";
+                SELECT id_actuacion AS IdActuacion, 
+                       id_expediente AS IdExpediente,
+                       fecha_actuacion AS FechaActuacion, 
+                       actuacion AS Actuacion,
+                       descripcion AS Descripcion, 
+                       ISNULL(documento_vinculado, N'—') AS DocumentoVinculado,
+                       usuario AS Usuario, 
+                       fecha_registro AS FechaRegistro
+                FROM Expediente_Bitacora
+                WHERE id_expediente = @id
+                ORDER BY fecha_actuacion ASC, id_actuacion ASC";
 
-            var lista = await con.QueryAsync<BitacoraActuacionDTO>(query, new { ID = idExpediente });
+            var lista = await con.QueryAsync<BitacoraActuacionDTO>(query, new { id = idExpediente });
             return Ok(lista);
         }
 
@@ -405,30 +435,50 @@ namespace SolicitudesAPI.Controllers
 
             using var con = GetConnection();
             string query = @"
-                INSERT INTO EXPEDIENTE_BITACORA
-                    (ID_EXPEDIENTE, FECHA_ACTUACION, ACTUACION, DESCRIPCION, DOCUMENTO_VINCULADO, FECHA_REGISTRO)
+                INSERT INTO Expediente_Bitacora
+                    (id_expediente, fecha_actuacion, actuacion, descripcion, documento_vinculado, fecha_registro)
                 VALUES 
-                    (@IdExpediente, @FechaActuacion, @Actuacion, @Descripcion, @DocumentoVinculado, GETDATE());";
+                    (@id_expediente, @fecha_actuacion, @actuacion, @descripcion, @documento_vinculado, GETDATE());";
 
             await con.ExecuteAsync(query, new
             {
-                dto.IdExpediente,
-                dto.FechaActuacion,
-                Actuacion = dto.Actuacion.Trim(),
-                Descripcion = string.IsNullOrWhiteSpace(dto.Descripcion) ? string.Empty : dto.Descripcion.Trim(),
-                DocumentoVinculado = string.IsNullOrWhiteSpace(dto.DocumentoVinculado) ? null : dto.DocumentoVinculado.Trim()
+                id_expediente = dto.IdExpediente,
+                fecha_actuacion = dto.FechaActuacion,
+                actuacion = dto.Actuacion.Trim(),
+                descripcion = string.IsNullOrWhiteSpace(dto.Descripcion) ? string.Empty : dto.Descripcion.Trim(),
+                documento_vinculado = string.IsNullOrWhiteSpace(dto.DocumentoVinculado) ? null : dto.DocumentoVinculado.Trim()
             });
 
             return Ok(new { mensaje = "Actuación registrada con éxito" });
         }
 
+        // 9. OBTENER LISTA DE FOLIOS DISPONIBLES EN EL MÓDULO 1
+        [HttpGet("Expedientes/Folios")]
+        public async Task<IActionResult> ObtenerFoliosDisponibles()
+        {
+            using var con = GetConnection();
+
+            // Seleccionamos el Folio de la tabla Expedientes y opcionalmente el nombre del solicitante 
+            // para mostrarlo como contexto en el frontend (ej. "80 - Brand...")
+            string query = @"
+                SELECT ID as Id, 
+                       CAST(Folio AS NVARCHAR(50)) AS Folio, 
+                       NombreSolicitante
+                FROM Expedientes
+                WHERE Folio IS NOT NULL
+                ORDER BY ID DESC";
+
+            var folios = await con.QueryAsync(query);
+            return Ok(folios);
+        }
+
         // OBTENER DATOS ESTADÍSTICOS CONSOLIDADOS
         [HttpGet("Estadisticas")]
         public async Task<IActionResult> ObtenerEstadisticas(
-        [FromQuery] DateTime? fechaInicio,
-        [FromQuery] DateTime? fechaFin,
-        [FromQuery] int? anio,
-        [FromQuery] string? materia)
+            [FromQuery] DateTime? fechaInicio,
+            [FromQuery] DateTime? fechaFin,
+            [FromQuery] int? anio,
+            [FromQuery] string? materia)
         {
             try
             {
@@ -436,24 +486,24 @@ namespace SolicitudesAPI.Controllers
                 // Construcción dinámica de condiciones WHERE
                 var condiciones = new List<string> { "1 = 1" };
 
-                // Validar rango de fechas (usando FECHA_PRESENTACION como pivote)
+                // Validar rango de fechas (usando fecha_presentacion como pivote)
                 if (fechaInicio.HasValue && fechaInicio.Value.Year >= 1900)
                 {
-                    condiciones.Add("FECHA_PRESENTACION >= @FechaInicio");
+                    condiciones.Add("fecha_presentacion >= @FechaInicio");
                 }
 
                 if (fechaFin.HasValue && fechaFin.Value.Year >= 1900)
                 {
-                    condiciones.Add("FECHA_PRESENTACION <= @FechaFin");
+                    condiciones.Add("fecha_presentacion <= @FechaFin");
                 }
 
-                    // Mantener los filtros anteriores como respaldo
-                    if (anio.HasValue && anio.Value > 0)
-                    condiciones.Add(@"(YEAR(COALESCE(FECHA_PRESENTACION, FECHA_NOTIFICACION_ADMISION, FECHA_RESOLUCION, FECHA_CREACION)) = @Anio 
-                           OR NUMERO_RECURSO LIKE '%/' + CAST(@Anio AS VARCHAR))");
+                // Mantener los filtros anteriores como respaldo
+                if (anio.HasValue && anio.Value > 0)
+                    condiciones.Add(@"(YEAR(COALESCE(fecha_presentacion, fecha_notificacion_admision, fecha_resolucion, fecha_creacion)) = @Anio 
+                           OR numero_recurso LIKE '%/' + CAST(@Anio AS VARCHAR))");
 
                 if (!string.IsNullOrWhiteSpace(materia))
-                    condiciones.Add("MATERIA_RECURSO LIKE '%' + @Materia + '%'");
+                    condiciones.Add("materia_recurso LIKE '%' + @Materia + '%'");
 
                 string whereClause = string.Join(" AND ", condiciones);
 
@@ -462,8 +512,8 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Recursos registrados' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
                     WHERE {whereClause}
 
                     UNION ALL
@@ -472,9 +522,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Recursos en trámite' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND (ESTATUS LIKE '%Trámite%' OR ESTATUS LIKE '%Tramite%')
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND (estatus LIKE '%Trámite%' OR estatus LIKE '%Tramite%')
 
                     UNION ALL
 
@@ -482,9 +532,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Recursos concluidos' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND ESTATUS LIKE '%Conclu%'
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND estatus LIKE '%Conclu%'
 
                     UNION ALL
 
@@ -492,9 +542,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Recursos admitidos' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND ESTATUS LIKE '%Admitido%'
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND estatus LIKE '%Admitido%'
 
                     UNION ALL
 
@@ -502,9 +552,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Recursos en cumplimiento' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND (ESTATUS LIKE '%Cumplimiento%' OR REQUIERE_CUMPLIMIENTO = 1)
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND (estatus LIKE '%Cumplimiento%' OR requiere_cumplimiento = 1)
 
                     UNION ALL
 
@@ -512,9 +562,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Sentido: Confirma' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND SENTIDO_RESOLUCION LIKE '%Confirma%'
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND sentido_resolucion LIKE '%Confirma%'
 
                     UNION ALL
 
@@ -522,9 +572,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Sentido: Revoca' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND SENTIDO_RESOLUCION LIKE '%Revoca%'
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND sentido_resolucion LIKE '%Revoca%'
 
                     UNION ALL
 
@@ -532,9 +582,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Sentido: Modifica' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND SENTIDO_RESOLUCION LIKE '%Modifica%'
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND sentido_resolucion LIKE '%Modifica%'
 
                     UNION ALL
 
@@ -542,9 +592,9 @@ namespace SolicitudesAPI.Controllers
                     SELECT 
                         'Sentido: Sobresee' AS Concepto,
                         COUNT(1) AS Cantidad,
-                        ISNULL(STRING_AGG(CAST('(' + ISNULL(NUMERO_RECURSO, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
-                    FROM EXPEDIENTE_RECURSO
-                    WHERE {whereClause} AND SENTIDO_RESOLUCION LIKE '%Sobresee%'
+                        ISNULL(STRING_AGG(CAST('(' + ISNULL(numero_recurso, 'S/N') + ')' AS NVARCHAR(MAX)), ' '), '') AS Recursos
+                    FROM Expediente_Recurso
+                    WHERE {whereClause} AND sentido_resolucion LIKE '%Sobresee%'
                 ";
 
                 var parameters = new DynamicParameters();
@@ -556,6 +606,7 @@ namespace SolicitudesAPI.Controllers
 
                 if (anio.HasValue && anio.Value > 0) parameters.Add("@Anio", anio.Value);
                 if (!string.IsNullOrWhiteSpace(materia)) parameters.Add("@Materia", materia.Trim());
+
                 var estadisticas = await con.QueryAsync<EstadisticaDTO>(query, parameters);
                 return Ok(estadisticas);
             }
