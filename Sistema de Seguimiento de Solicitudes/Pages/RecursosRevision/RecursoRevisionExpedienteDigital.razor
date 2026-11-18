@@ -848,8 +848,12 @@
 
         try
         {
+            // Declaramos la variable de respuesta ANTES del if, para que sea accesible globalmente en el try
+            HttpResponseMessage response;
+
             if (modelo.IdExpediente == 0)
             {
+                // Validación rápida en cliente de duplicados por Número de Recurso
                 if (listaExpedientes.Any(x => string.Equals(x.NumeroRecurso?.Trim(), modelo.NumeroRecurso?.Trim(), StringComparison.OrdinalIgnoreCase)))
                 {
                     MostrarMensaje($"El recurso '{modelo.NumeroRecurso}' ya existe.", "error");
@@ -857,18 +861,24 @@
                     return;
                 }
 
-                var response = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", modelo);
+                // Ejecuta la petición POST y la asigna a la variable externa
+                response = await Http.PostAsJsonAsync("api/RecursoRevision/Expediente", modelo);
+
                 if (response.IsSuccessStatusCode)
                 {
                     ResetearFormulario();
                     await CargarListaExpedientes();
                     MostrarMensaje("Expediente guardado correctamente.", "success");
                     await JS.InvokeVoidAsync("scrollToTop");
+                    return; // Terminamos aquí si fue exitoso
                 }
             }
             else
             {
-                var response = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", modelo);
+                // MODO ACTUALIZAR
+                // Ejecuta la petición PUT y la asigna a la misma variable externa
+                response = await Http.PutAsJsonAsync("api/RecursoRevision/Expediente/Actualizar", modelo);
+
                 if (response.IsSuccessStatusCode)
                 {
                     var errorData = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
@@ -876,8 +886,28 @@
                         ? errorData["mensaje"]
                         : "Error al actualizar el expediente.";
                     MostrarMensaje(errorMsg, "error");
+                    return; // Terminamos aquí si fue exitoso
                 }
             }
+
+            string errorMsjBackend = "Error de comunicación con el servidor.";
+            try
+            {
+                var contentString = await response.Content.ReadAsStringAsync();
+                if (!string.IsNullOrWhiteSpace(contentString))
+                {
+                    // Llamada absoluta a System.Text.Json.JsonDocument
+                    using var doc = System.Text.Json.JsonDocument.Parse(contentString);
+                    if (doc.RootElement.TryGetProperty("mensaje", out var mensajeProp))
+                    {
+                        errorMsjBackend = mensajeProp.GetString() ?? errorMsjBackend;
+                    }
+                }
+            }
+            catch (Exception) { /* Falla la deserialización, se mantiene el genérico */ }
+
+            MostrarMensaje(errorMsjBackend, "error");
+            await JS.InvokeVoidAsync("scrollToTop");
         }
         catch (Exception ex)
         {

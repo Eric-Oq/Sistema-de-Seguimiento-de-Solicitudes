@@ -91,10 +91,10 @@ namespace SolicitudesAPI.Controllers
             }
 
             // 2. Validar que el Número de Recurso no esté duplicado en el Módulo 2
-            string queryExisteRecurso = "SELECT COUNT(1) FROM Expediente_Recurso WHERE numero_recurso = @numero";
-            if (await con.ExecuteScalarAsync<int>(queryExisteRecurso, new { numero = m.NumeroRecurso.Trim() }) > 0)
+            string queryFolioUsado = "SELECT COUNT(1) FROM Expediente_Recurso WHERE folio_solicitud = @folio";
+            if (await con.ExecuteScalarAsync<int>(queryFolioUsado, new { folio = m.FolioSolicitud.Trim() }) > 0)
             {
-                return Conflict(new { mensaje = $"El recurso '{m.NumeroRecurso}' ya existe en el sistema." });
+                return Conflict(new { mensaje = $"El folio de solicitud '{m.FolioSolicitud.Trim()}' ya se encuentra vinculado a otro recurso de revisión." });
             }
 
             string query = @"
@@ -165,6 +165,12 @@ namespace SolicitudesAPI.Controllers
             if (await con.ExecuteScalarAsync<int>(queryExisteFolio, new { folio = m.FolioSolicitud.Trim() }) == 0)
             {
                 return BadRequest(new { mensaje = $"El folio de solicitud '{m.FolioSolicitud.Trim()}' no está registrado en el Módulo de Solicitudes." });
+            }
+
+            string queryFolioUsado = "SELECT COUNT(1) FROM Expediente_Recurso WHERE folio_solicitud = @folio AND id_expediente != @id";
+            if (await con.ExecuteScalarAsync<int>(queryFolioUsado, new { folio = m.FolioSolicitud.Trim(), id = m.IdExpediente }) > 0)
+            {
+                return Conflict(new { mensaje = $"El folio de solicitud '{m.FolioSolicitud.Trim()}' ya se encuentra vinculado a otro recurso de revisión." });
             }
 
             string query = @"
@@ -452,20 +458,24 @@ namespace SolicitudesAPI.Controllers
             return Ok(new { mensaje = "Actuación registrada con éxito" });
         }
 
-        // 9. OBTENER LISTA DE FOLIOS DISPONIBLES EN EL MÓDULO 1
+        // 9. OBTENER LISTA DE FOLIOS DISPONIBLES EN EL MÓDULO 1 (Excluyendo los ya usados en Módulo 2)
         [HttpGet("Expedientes/Folios")]
         public async Task<IActionResult> ObtenerFoliosDisponibles()
         {
             using var con = GetConnection();
 
-            // Seleccionamos el Folio de la tabla Expedientes y opcionalmente el nombre del solicitante 
-            // para mostrarlo como contexto en el frontend (ej. "80 - Brand...")
+            // Seleccionamos el Folio de Expedientes, excluyendo aquellos que ya están en Expediente_Recurso
             string query = @"
                 SELECT ID as Id, 
                        CAST(Folio AS NVARCHAR(50)) AS Folio, 
                        NombreSolicitante
                 FROM Expedientes
                 WHERE Folio IS NOT NULL
+                  AND CAST(Folio AS NVARCHAR(50)) NOT IN (
+                      SELECT folio_solicitud 
+                      FROM Expediente_Recurso 
+                      WHERE folio_solicitud IS NOT NULL
+                  )
                 ORDER BY ID DESC";
 
             var folios = await con.QueryAsync(query);
