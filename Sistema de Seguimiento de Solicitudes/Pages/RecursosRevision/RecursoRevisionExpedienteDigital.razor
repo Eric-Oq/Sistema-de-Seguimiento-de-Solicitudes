@@ -389,22 +389,23 @@
                     <table class="w-full text-left text-xs divide-y divide-slate-200">
                         <thead class="bg-brand-900 text-white font-semibold">
                             <tr>
-                                <th class="px-4 py-3">Tipo de documento</th>
+                                <th class="px-4 py-3 whitespace-nowrap">Tipo de documento</th>
                                 <th class="px-4 py-3">Nombre del archivo</th>
-                                <th class="px-4 py-3">Fecha</th>
-                                <th class="px-4 py-3">Usuario</th>
-                                <th class="px-4 py-3 text-center">Acción</th>
+                                <th class="px-4 py-3">Descripción</th>
+                                <th class="px-4 py-3 whitespace-nowrap">Fecha</th>
+                                <th class="px-4 py-3 whitespace-nowrap">Usuario</th>
+                                <th class="px-4 py-3 text-center whitespace-nowrap">Acción</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200 bg-white text-slate-700">
                             @if (!string.IsNullOrEmpty(errorDocumentos))
                             {
-                                <tr><td colspan="5" class="text-center py-6 text-rose-700" role="alert">@errorDocumentos</td></tr>
+                                <tr><td colspan="6" class="text-center py-6 text-rose-700" role="alert">@errorDocumentos</td></tr>
                             }
                             else if (!documentosGuardados.Any())
                             {
                                 <tr>
-                                    <td colspan="5" class="text-center py-6 text-slate-400 italic">
+                                    <td colspan="6" class="text-center py-6 text-slate-400 italic">
                                         No hay documentos guardados para este expediente.
                                     </td>
                                 </tr>
@@ -413,16 +414,40 @@
                             {
                                 @foreach (var doc in documentosGuardados)
                                 {
-                                    <tr class="hover:bg-slate-50 transition">
-                                        <td class="px-4 py-2.5 font-medium text-slate-900">@doc.TipoDocumento</td>
-                                        <td class="px-4 py-2.5 text-brand-600 truncate max-w-[200px]" title="@doc.NombreArchivo">
-                                            <span class="inline-flex items-center gap-1.5">
+                                    bool expandido = descripcionesExpandidas.Contains(doc.IdArchivo);
+                                    bool esLarga = !string.IsNullOrWhiteSpace(doc.Descripcion) && doc.Descripcion.Length > 60;
+
+                                    <tr class="hover:bg-slate-50 transition align-top">
+                                        <td class="px-4 py-2.5 font-medium text-slate-900 whitespace-nowrap">@doc.TipoDocumento</td>
+                                        <td class="px-4 py-2.5 text-brand-600 max-w-[200px]" title="@doc.NombreArchivo">
+                                            <span class="inline-flex items-center gap-1.5 max-w-full">
                                                 <SvgIcon Name="file" CssClass="h-4 w-4 shrink-0" />
                                                 <span class="truncate">@doc.NombreArchivo</span>
                                             </span>
                                         </td>
+                                        <td class="px-4 py-2.5 max-w-[280px]">
+                                            @if (string.IsNullOrWhiteSpace(doc.Descripcion))
+                                            {
+                                                <span class="text-slate-400 italic">Sin descripción</span>
+                                            }
+                                            else
+                                            {
+                                                <div class="@(expandido ? "whitespace-normal break-words text-slate-700" : "truncate text-slate-600")"
+                                                     title="@doc.Descripcion">
+                                                    @doc.Descripcion
+                                                </div>
+                                                @if (esLarga)
+                                                {
+                                                    <button type="button"
+                                                            class="mt-0.5 text-[11px] font-semibold text-brand-600 hover:text-brand-800 hover:underline"
+                                                            @onclick="() => AlternarDescripcion(doc.IdArchivo)">
+                                                        @(expandido ? "Ver menos ▲" : "Ver más ▼")
+                                                    </button>
+                                                }
+                                            }
+                                        </td>
                                         <td class="px-4 py-2.5 whitespace-nowrap">@doc.FechaDocumento.ToString("dd/MM/yyyy")</td>
-                                        <td class="px-4 py-2.5 text-slate-600">@doc.Usuario</td>
+                                        <td class="px-4 py-2.5 text-slate-600 whitespace-nowrap">@doc.Usuario</td>
                                         <td class="px-4 py-2.5 text-center whitespace-nowrap">
                                             <div class="inline-flex items-center gap-2 text-brand-600 font-semibold">
                                                 <button type="button" class="hover:underline hover:text-brand-800"
@@ -806,6 +831,16 @@
         ctsAlerta?.Cancel();
         mensajeAlerta = string.Empty;
         StateHasChanged();
+    }
+
+    private HashSet<int> descripcionesExpandidas = new();
+
+    private void AlternarDescripcion(int idArchivo)
+    {
+        if (!descripcionesExpandidas.Remove(idArchivo))
+        {
+            descripcionesExpandidas.Add(idArchivo);
+        }
     }
 
     private async Task CargarListaExpedientes()
